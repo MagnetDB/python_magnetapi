@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "python_magnetapi"
+version = "0.1.0"
+description = ""
+authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
+           "Remi Caumette <remicaumette@icloud.com>" 
+          ]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.27.1"
+param = "^1.12.0"
+pandas = "^1.4.1"
+numpy = "^1.22.3"
+scipy = "^1.22.3"
+#magnettools = {path = "/home/feelpp/magnettools-1.0.7/build/Python/dist/MagnetTools-0.1.0-py3-none-any.whl"}
+#python-magnetsetup = {path = "python_magnetsetup"}
+python-magnetrun = {path = "python_magnetrun"}
+rich = "^9.11.0"
+
+
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

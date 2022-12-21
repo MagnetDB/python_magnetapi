@@ -1,0 +1,91 @@
+Description: <short summary of the patch>
+ TODO: Put a short summary on the line above and replace this paragraph
+ with a longer explanation of this change. Complete the meta-information
+ with other relevant fields (see below for details). To make it easier, the
+ information below has been extracted from the changelog. Adjust it or drop
+ it.
+ .
+ python-magnetrun (0.0.1-1) unstable; urgency=medium
+ .
+   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: https://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: 2021-03-24
+
+--- python-magnetrun-0.0.1.orig/python_magnetrun/wproperties.py
++++ python-magnetrun-0.0.1/python_magnetrun/wproperties.py
+@@ -18,37 +18,38 @@ descriptions = {
+     'mu': ("Dynamic Viscosity", "Pa.s")
+ }
+ 
+-parser = argparse.ArgumentParser("Water Properties")
+-parser.add_argument(
+-    "--property", help="select a property (default: rho m3/h)", type=str, choices=['rho', 'cp', 'k', 'mu'], default='rho')
+-parser.add_argument(
+-    "--Trange", help="set Temperature range in Celsius divided into n points (eg 'T0;T1,n')", type=str, default='10;50;50')
+-parser.add_argument(
+-    "--Prange", help="set Pressure range in Bar divided into n points (eg 'P0;P1;n')", type=str, default='0.1;40;50')
++if __name__ == "__main__":
++    parser = argparse.ArgumentParser("Water Properties")
++    parser.add_argument(
++        "--property", help="select a property (default: rho m3/h)", type=str, choices=['rho', 'cp', 'k', 'mu'], default='rho')
++    parser.add_argument(
++        "--Trange", help="set Temperature range in Celsius divided into n points (eg 'T0;T1,n')", type=str, default='10;50;50')
++    parser.add_argument(
++        "--Prange", help="set Pressure range in Bar divided into n points (eg 'P0;P1;n')", type=str, default='0.1;40;50')
+ 
+-args = parser.parse_args()
++    args = parser.parse_args()
+ 
+-wprop = args.property
+-(T0, T1, nT) = args.Trange.split(';')
+-(P0, P1, nP) = args.Prange.split(';')
++    wprop = args.property
++    (T0, T1, nT) = args.Trange.split(';')
++    (P0, P1, nP) = args.Prange.split(';')
+ 
+ 
+-def myfunc(T, P):
+-    return functions[wprop](P, T)
++    def myfunc(T, P):
++        return functions[wprop](P, T)
+ 
+-Trange = np.linspace(float(T0), float(T1), int(nT))
+-Prange = np.linspace(float(P0), float(P1), int(nP))
+-(x, y) = np.meshgrid(Trange, Prange)
++    Trange = np.linspace(float(T0), float(T1), int(nT))
++    Prange = np.linspace(float(P0), float(P1), int(nP))
++    (x, y) = np.meshgrid(Trange, Prange)
+ 
+-myfunc_vec = np.vectorize(myfunc)
+-p = lambda x, y: myfunc_vec(x, y) 
++    myfunc_vec = np.vectorize(myfunc)
++    p = lambda x, y: myfunc_vec(x, y) 
+ 
+-fig = plt.figure()
+-ax = plt.gca()
++    fig = plt.figure()
++    ax = plt.gca()
+ 
+-CS = plt.contour(x, y, p(x, y), 20)
+-plt.clabel(CS, inline=1, fontsize=10)
+-plt.title('Water %s' % descriptions[wprop][0])
+-ax.set(xlabel='T [C]', ylabel='P [Bar]',  title='%s [%s]' % (wprop, descriptions[wprop][1]) )
++    CS = plt.contour(x, y, p(x, y), 20)
++    plt.clabel(CS, inline=1, fontsize=10)
++    plt.title('Water %s' % descriptions[wprop][0])
++    ax.set(xlabel='T [C]', ylabel='P [Bar]',  title='%s [%s]' % (wprop, descriptions[wprop][1]) )
+ 
+-plt.show()
++    plt.show()
