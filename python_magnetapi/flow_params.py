@@ -74,18 +74,17 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='magnet', debug
             # get keys to be extracted
             df = pd.read_csv(files[0], sep='\s+', engine='python', skiprows=1)
             Ikey = "tttt"
-            if not Get_Ikey:
-                # get first Icoil column (not necessary Icoil1)
-                keys = df.columns.values.tolist()
 
-                # key firs header that match Icoil\d+
-                for _key in keys:
-                    _found = re.match("Icoil\d+", _key)
-                    if _found:
-                        Ikey = _found.group()
-                        print(f"Ikey={Ikey}")
-                        Get_Ikey = True
-                        break
+            # get first Icoil column (not necessary Icoil1)
+            keys = df.columns.values.tolist()
+
+            # key firs header that match Icoil\d+
+            for _key in keys:
+                _found = re.match("Icoil\d+", _key)
+                if _found:
+                    Ikey = _found.group()
+                    print(f"Ikey={Ikey}")
+                    break
 
             plot_files(files, key1=Ikey ,key2=fit_data[key]['Rpm'], show=debug, debug=debug)
             df = concat_files(files, keys=[Ikey, fit_data[key]['Rpm']], show=debug, debug=debug)
