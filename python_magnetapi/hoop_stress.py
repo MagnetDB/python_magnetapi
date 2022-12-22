@@ -30,6 +30,7 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
         return None
 
     part = utils.getobject(f"{api_server}", headers=headers, mtype='part', id=oid, verbose=verbose, debug=debug)
+    print(f'part: {part}')
     part_type = part['type']
     if part['type'] == 'helix':
         mpart = 'H'
@@ -41,13 +42,14 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
         print(f"hoop_stress.compute: expect a part of type (helix|bitter|supra) - got a {part_type} for part={part['name']}")
         return None
         
-    # download geofile
-    attach = f['attachment_id']
-    filename = utils.download(api_server, headers, attach, debug)
-
-    # get r from geofile
-    # load filename
-    # r =
+    # # get r from geofile
+    # r = 0
+    # attach = f['attachment_id']
+    # filename = utils.download(api_server, headers, attach, debug)
+    # with tempfile.TemporaryDirectory() as tempdir:
+    #     os.chdir(tempdir)
+    #     # load yamlfile
+    #     # get R int
 
     print(f'hoop_stress.compute: api_server={api_server}, mtype={mtype}, id={oid}, name={part['name']')
     cwd = os.getcwd()
