@@ -61,6 +61,7 @@ def main():
     # stats subcommand
     # compute
     parser_compute.add_argument("--flow_params", help="activate flow params", action='store_true')
+    parser_compute.add_argument("--hoop_stress", help="activate hoop stress history", action='store_true')
 
     # get args
     args = parser.parse_args()
@@ -177,6 +178,18 @@ def main():
                     response = utils.getobject(f"{web}", headers=headers, mtype=otype, id=ids[args.name], debug=args.debug)
                     from . import flow_params
                     flow_params.compute(f"{web}", headers=headers, mtype=otype, oid=ids[args.name], debug=args.debug)
+                else:
+                    raise RuntimeError(f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects")
+
+            if args.hoop_stress:
+                if otype not in ['part']:
+                    raise RuntimeError(f"unexpected type {args.mtype} in compute subcommand hoop_stress")
+
+                ids = utils.getlist(f"{web}", headers=headers, mtype=otype, debug=args.debug)
+                if args.name in ids:
+                    response = utils.getobject(f"{web}", headers=headers, mtype=otype, id=ids[args.name], debug=args.debug)
+                    from . import flow_params
+                    hoop_stress(f"{web}", headers=headers, mtype=otype, oid=ids[args.name], debug=args.debug)
                 else:
                     raise RuntimeError(f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects")
 

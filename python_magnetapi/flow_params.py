@@ -45,6 +45,8 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='magnet', debug
         'M10': { 'Rpm': 'Rpm2', 'Flow': 'Flow2', 'rlist' : []},
     }
 
+    # MAYBE better to proceed first by site
+    # instead of getting all records at once ??
     records = utils.gethistory(api_server, headers, oid, mtype, debug)
     if debug:
         print(f'records: {records}')
