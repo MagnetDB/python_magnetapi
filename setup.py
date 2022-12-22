@@ -24,6 +24,6 @@ setup(
     packages=[],
     package_dir={"": "."},
     package_data={},
-    install_requires=['numpy==1.*,>=1.22.3', 'pandas==1.*,>=1.4.1', 'param==1.*,>=1.12.0', 'requests==2.*,>=2.27.1', 'rich==9.*,>=9.11.0', 'scipy==1.*,>=1.22.3',
-                      'python-magnettools', 'python-magnetrun'],
+    install_requires=['numpy==1.*,>=1.19.5', 'pandas==1.*,>=1.4.1', 'param==1.*,>=1.12.0', 'requests==2.*,>=2.27.1', 'rich==9.*,>=9.11.0', 'scipy==1.*,>=1.6.0',
+                      'python-magnettools', 'python-magnetgeo', 'python-magnetrun'],
 )
