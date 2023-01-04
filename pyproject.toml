@@ -15,8 +15,8 @@ numpy = "^1.22.3"
 scipy = "^1.9.3"
 #magnettools = {path = "/home/feelpp/magnettools-1.0.7/build/Python/dist/MagnetTools-0.1.0-py3-none-any.whl"}
 #python-magnetgeo = {path = "python_magnetsgeo"}
-#python-magnetsetup = {path = "python_magnetsetup"}
-python-magnetrun = {path = "python_magnetrun"}
+python-magnetsetup = {path = "../python_magnetsetup"}
+python-magnetrun = {path = "../python_magnetrun"}
 rich = "^9.11.0"
 
 

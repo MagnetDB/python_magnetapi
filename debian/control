@@ -7,6 +7,7 @@ Build-Depends: debhelper-compat (= 12),
  python3-setuptools,
  python3-all,
  python3-magnetrun,
+ python3-magnetsetup,
  python3-rich
 Standards-Version: 4.5.1
 Homepage: https://github.com/Trophime/python_magnetrun
@@ -19,7 +20,7 @@ Package: python3-magnetapi
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}
 Suggests: python-magnetrun-doc
-Description: Python Api for magnetDB (Python 3)
+Description: Python Cli for magnetDB (Python 3)
  Python MagnetApi provides utils to interact with MagnetDB
  .
  This package installs the library for Python 3.
@@ -28,7 +29,7 @@ Package: python-magnetapi-doc
 Architecture: all
 Section: doc
 Depends: ${sphinxdoc:Depends}, ${misc:Depends}
-Description: Python Api for magnetDB (common documentation)
+Description: Python Cli for magnetDB (common documentation)
  Python MagnetApi provides utils to interact with MagnetDB
  .
  This is the common documentation package.

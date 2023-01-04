@@ -23,5 +23,7 @@ You can find your API key in your profile page.
 ```bash
 export MAGNETDB_API_KEY=xxx
 python -m python_magnetapi.cli --help
+python -m python_magnetapi.cli --name M19061901 compute --flow_params
+python -m python_magnetapi.cli --mtype part --name H15101601 compute --hoop_stress
 ```
 
