@@ -98,9 +98,11 @@ def main():
 
         if args.command == 'create':
             # if server, try to guess some values by running appropriate commands on the server
-            # if part|magnet|site need to attach some extra files
+            # if part|magnet|site need to attach some extra files and upload then to minio
             # if part|magnet|site update associative tables
             # if record upload file to minio
+
+            # create material if not already done then part
             print('create: not implemented')
 
         if args.command == 'run':
@@ -188,8 +190,8 @@ def main():
                 ids = utils.getlist(f"{web}", headers=headers, mtype=otype, debug=args.debug)
                 if args.name in ids:
                     response = utils.getobject(f"{web}", headers=headers, mtype=otype, id=ids[args.name], debug=args.debug)
-                    from . import flow_params
-                    hoop_stress(f"{web}", headers=headers, mtype=otype, oid=ids[args.name], debug=args.debug)
+                    from . import hoop_stress
+                    hoop_stress.compute(f"{web}", headers=headers, mtype=otype, oid=ids[args.name], debug=args.debug)
                 else:
                     raise RuntimeError(f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects")
 

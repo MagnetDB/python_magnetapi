@@ -97,56 +97,73 @@ def addtoobject(api_server: str, headers: dict, id: int, mtype: str='magnet', da
         return None
     pass
 
-def gethistory(api_server: str, headers: dict, id: int, mtype: str='magnet', verbose: bool=False, debug: bool=False):
+def gethistory(api_server: str, headers: dict, id: int, mtype: str='magnet', otype='record', verbose: bool=False, debug: bool=False):
     """
-    return list of records ids attached to object id
+    return list of otype ids attached to object id
+
+    otype = site|record
     """
     if verbose:
-        print(f'gethistory: api_server={api_server}, mtype={mtype}, id={id}')
+        print(f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id}")
 
     r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
     response = r.json()
-
     if r.status_code != 200:
-        print(response['detail'])
+        print(f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}")
         return None
 
-    if mtype in ['part', 'magnet']:
-        r = requests.get(f"{api_server}/api/{mtype}s/{id}/records", headers=headers)
+    if mtype in ['part', 'magnet', 'site']:
+        r = requests.get(f"{api_server}/api/{mtype}s/{id}/{otype}s", headers=headers)
         response = r.json()
         if r.status_code != 200:
-            print(f'{api_server}/api/{mtype}s/{id}/records')
-            print(response['detail'])
+            print(f'{api_server}/api/{mtype}s/{id}/{otype}s')
+            print(f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}")
             return None
-        return response['records']
-
-    elif mtype == 'site':
-        r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-            return None
-        
-        return [record.serialize() for record in response['records']]
+        return response[f'{otype}s']
 
     return []
 
-def download(api_server: str, headers: dict, attach: str, verbose: bool=False, debug: bool=False):
+def getdata(api_server: str, headers: dict, oid: int, mtype: str='magnet', verbose: bool=False, debug: bool=False):
+    """
+    return data attached to mtype object with oid
+
+    """
+    if verbose:
+        print(f"getdata: api_server={api_server}, mtype={mtype}, id={oid}")
+
+    r = requests.get(f"{api_server}/api/{mtype}s/{oid}/mdata", headers=headers)
+    print(f'r={r}, status_code={r.status_code}, text={r.text}')
+    response = r.json()
+    if r.status_code != 200:
+        print(f"getdata: api_server={api_server}/api/{mtype}s/{oid}/mdata, mtype={mtype}, id={oid} response={response['detail']}")
+        return None
+
+    print(f'getdata: response={response}')
+    return response
+
+def download(api_server: str, headers: dict, attach: str, wd: str="", verbose: bool=False, debug: bool=False):
     """
     download file
     """
+    import os
+
     if verbose:
         print(f'download: api_server={api_server}, attach={attach}')
 
     r = requests.get(f"{api_server}/api/attachments/{attach}/download", headers=headers)
     if r.status_code != 200:
-        print(response['detail'])
+        # print(f"download: api_server={api_server}, attach={attach} response={r.status_code}")
         return None
+
+    cwd = os.getcwd()
+    if wd:
+        os.chdir(wd)
 
     filename = list(re.finditer(r"filename=\"(.+)\"", r.headers['content-disposition'], re.MULTILINE))[0].group(1)
     with open(filename, 'w+') as file:
         file.write(r.text)
 
+    os.chdir(cwd)
     return filename
     
 def upload(api_server: str, headers: dict, attach: str, verbose: bool=False, debug: bool=False):
