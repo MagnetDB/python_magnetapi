@@ -4,6 +4,7 @@ create site
 
 import requests
 from . import utils
+from . import magnet
 
 def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debug: bool=False):
     """
@@ -17,29 +18,16 @@ def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debu
 
     else:
         # data: extract only necessary data for creation
-        r = requests.post(
-            f"{api_server}/api/sites",
-            data=data,
-            headers=headers
-        )
-
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-
+        response = utils.postdata(api_server, headers, data, 'site', verbose, debug)
+        if response is None:
+            print(f"site {data['name']} failed to be created")
+            return None
         print(f"site {data['name']} created with id={response['id']}")
 
         # loop over magnets
-        # look for magnets
-        _ids = utils.getlist(api_server, headers=headers, mtype='magnet', debug=debug)
-        if not data['material'] in ids:
-            print(f"create(site, name={data['name']}): magnet with name={data['material']} does not exist - must be created first")
-            return None
-        else:
-            _id = _ids[data['material']]
-            data['magnet_id'] = _id
-            # drop data['material']
-            data.drop('material')
+        for magnet in data['magnets']:
+            mdata = {}
+            magnet.create(api_server, headers=headers, data=mdata, mtype='magnet', verbose=verbose, debug=debug)
 
-        # /api/sites/{site_id}/magnets + params=magnet_id
+        # fill site_magnets see python_magnetdb/routes/api/site_magnets.py
  

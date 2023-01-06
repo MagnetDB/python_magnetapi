@@ -27,14 +27,10 @@ def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debu
             # drop data['material']
             data.drop('site')
 
-        r = requests.post(
-            f"{api_server}/api/records",
-            data=data,
-            headers=headers
-        )
+        # process record data: remove empty columns, rename columns, add Hoopstress data
 
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-
+        response = utils.postdata(api_server, headers, data, 'record', verbose, debug)
+        if response is None:
+            print(f"record {data['name']} failed to be created")
+            return None
         print(f"record {data['name']} created with id={response['id']}")
