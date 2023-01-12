@@ -6,11 +6,12 @@
 # https://github.com/dephell/dephell
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
     from distutils.core import setup
 
-readme = ''
+with open('README.md') as readme_file:
+    readme = readme_file.read()
 
 setup(
     long_description=readme,
@@ -19,11 +20,25 @@ setup(
     python_requires='==3.*,>=3.8.0',
     author='Christophe Trophime',
     author_email='christophe.trophime@lncmi.cnrs.fr',
-    maintainer='Remi Caumette',
-    maintainer_email='remicaumette@icloud.com',
-    packages=[],
-    package_dir={"": "."},
-    package_data={},
-    install_requires=['numpy==1.*,>=1.19.5', 'pandas==1.*,>=1.4.1', 'param==1.*,>=1.12.0', 'requests==2.*,>=2.27.1', 'rich==9.*,>=9.11.0', 'scipy==1.*,>=1.6.0',
-                      'python-magnettools', 'python-magnetgeo', 'python-magnetrun'],
+    maintainer='Christophe Trophime',
+    maintainer_email='christophe.trophime@lncmi.cnrs.fr',
+    packages=find_packages(include=['python_magnetapi', 'python_magnetapi.*']),
+    description="Python Magnet CLI to interact with MagnetDB",
+    license="MIT license",
+    install_requires=[
+        'numpy==1.*,>=1.19.5',
+        'pandas==1.*,>=1.4.1',
+        'param==1.*,>=1.12.0',
+        'requests==2.*,>=2.27.1',
+        'rich==9.*,>=9.11.0',
+        'scipy==1.*,>=1.6.0',
+        'python-magnettools',
+        'python-magnetgeo',
+        'python-magnetrun'
+    ],
+    entry_points={
+        'console_scripts': [
+            'python_magnetapi=python_magnetapi.cli:main',
+        ],
+    },
 )
