@@ -4,6 +4,7 @@ create part
 
 import requests
 from . import utils
+from . import material
 
 def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debug: bool=False):
     """
@@ -16,22 +17,15 @@ def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debu
         return None
 
     else:
-        # look for material
-        material_ids = utils.getlist(api_server, headers=headers, mtype='material', debug=debug)
-        if not data['material'] in ids:
-            print(f"create({mtype}, name={data['name']}): material with name={data['material']} does not exist - must be created first")
+        mdata = {}
+        material.create(api_server, headers=headers, data=mdata, mtype='material', verbose=verbose, debug=debug)
+
+        response = utils.postdata(api_server, headers, data, 'part', verbose, debug)
+        if response is None:
+            print(f"part {data['name']} failed to be created")
             return None
-        else:
-
-
-        r = requests.post(
-            f"{api_server}/api/parts",
-            data=data,
-            headers=headers
-        )
-
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-
         print(f"part {data['name']} created with id={response['id']}")
+
+        # add magnet info
+        # add geometry: see add_geometry_to_part.py
+        # add cad, ...

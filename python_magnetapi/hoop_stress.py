@@ -67,14 +67,14 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
         for i in range(nsites): # track(range(nsites), description=f"Processing sites for part {part['name']}..."):
             # get site with records
             site = utils.getobject(f"{api_server}", headers=headers, mtype='site', id=sites[i]['id'], verbose=verbose, debug=debug)
-            print(f"site[{i}]: {sites[i]['name']}")
+            # print(f"site[{i}]: {sites[i]['name']}")
             
             # add route to get data in visualisation
             config_data = utils.getdata(api_server, headers, oid=site['id'], mtype='site', debug=debug)
             
             # create datastruct for Hoop calc
             # pname: dict to hold partname <-> Hn or Bn or Sn
-            pname = dict()
+            pnames = dict()
             for magnet in site['site_magnets']:
                 _id = magnet['magnet_id']
                 _object = utils.getobject(f"{api_server}", headers=headers, mtype='magnet', id=_id, verbose=verbose, debug=debug)
@@ -83,7 +83,7 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
                 yamlfile = geom_data['filename']
                 attach  = geom_data['id']
                 filename = utils.download(api_server, headers, attach, wd=f"{tempdir}/data/geometries", debug=debug)
-                print(f"magnet: {_object['name']} {yamlfile}")
+                # print(f"magnet: {_object['name']} {yamlfile}")
                 num = 0
                 for part in _object['magnet_parts']:
                     _pid = part['part_id']
@@ -95,13 +95,13 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
                         yamlfile = geom_data['attachment']['filename']
                         attach  = geom_data['attachment']['id']
                         filename = utils.download(api_server, headers, attach, wd=f"{tempdir}/data/geometries", debug=debug)
-                        print(f"part: {_pobject['name']} {yamlfile}")
-                        pname[_pobject['name']] = f'{(_ptype.upper)[0]}{num+1}'
+                        print(f"part: {_pobject['name']} {yamlfile} {_ptype.upper()[0]}{num+1}" )
+                        pnames[_pobject['name']] = f'{_ptype.upper()[0]}{num+1}'
                         num += 1
 
             env = appenv(envfile=None, url_api=data_dir, yaml_repo=f"{data_dir}/geometries", cad_repo=f"{data_dir}/cad",
                      mesh_repo=data_dir, simage_repo=data_dir, mrecord_repo=data_dir, optim_repo=data_dir)
-            site_data = msite_setup(env, config_data['results'], True)
+            site_data = msite_setup(env, config_data['results'], debug)
             (Tubes, Helices, OHelices, BMagnets, UMagnets, Shims) = site_data
             icurrents = mt.get_currents(Tubes, Helices, BMagnets, UMagnets)
             
@@ -125,7 +125,6 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
                     rundata = MagnetRun.fromcsv(housing, site['name'], filename)
                 total += 1
 
-                print(f'keys: {rundata.getKeys()}')
                 # extract timestamp, currents from rundata
                 df = rundata.MagnetData.Data[['timestamp', 'Field', 'IH_ref', 'IB_ref']]
                 # print(f'df: {df}')
@@ -193,6 +192,8 @@ def compute(api_server: str, headers: dict, oid: int, mtype: str='part', verbose
                 for key in data:
                     df.insert(2, key, data[vheader], True)
                 print(f'df: {df}')
+
+                # add plot
                 sys.exit(1)
             print(f"Processed {total} records for {site['name']}.")
         os.chdir(cwd)

@@ -4,6 +4,7 @@ create magnet
 
 import requests
 from . import utils
+from . import part
 
 def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debug: bool=False):
     """
@@ -16,29 +17,19 @@ def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debu
         return None
 
     else:
-        # look for parts
-        part_ids = utils.getlist(api_server, headers=headers, mtype='part', debug=debug)
-        if not data['material'] in ids:
-            print(f"create(magnet, name={data['name']}): part with name={data['material']} does not exist - must be created first")
+        # data: extract only necessary data for creation
+        response = utils.postdata(api_server, headers, data, 'magnet', verbose, debug)
+        if response is None:
+            print(f"magnet {data['name']} failed to be created")
             return None
         else:
-            _id = part_ids[data['material']]
-            data['material_id'] = _id
-            # drop data['material']
-            data.drop('material')
+            print(f"magnet {data['name']} created with id={response['id']}")
 
-        # add created_at to data
-        # eventually add cao_attachment_id: aka xao and brep
-        # eventually add geometry_attachment_id: aka yaml cfgfile, cut file, shape file,...
- 
-        r = requests.post(
-            f"{api_server}/api/magnets",
-            data=data,
-            headers=headers
-        )
+            # loop over magnets
+            for part in data['parts']:
+                pdata = {}
+                part.create(api_server, headers=headers, data=pdata, mtype='part', verbose=verbose, debug=debug)
 
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-
-        print(f"magnet {data['name']} created with id={response['id']}")
+        # fill magnet_parts see python_magnetdb/routes/api/magnet_parts.py
+        # add geometry data: see add_geometry_to_magnet.py
+        # add cad

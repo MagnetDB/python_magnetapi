@@ -16,14 +16,8 @@ def create(api_server: str, headers: dict, data: dict, verbose: bool=False, debu
         return None
 
     else:
-        r = requests.post(
-            f"{api_server}/api/materials",
-            data=data,
-            headers=headers
-        )
-
-        response = r.json()
-        if r.status_code != 200:
-            print(response['detail'])
-
+        response = utils.postdata(api_server, headers, data, 'material', verbose, debug)
+        if response is None:
+            print(f"material {data['name']} failed to be created")
+            return None
         print(f"material {data['name']} created with id={response['id']}")

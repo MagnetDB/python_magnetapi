@@ -132,13 +132,31 @@ def getdata(api_server: str, headers: dict, oid: int, mtype: str='magnet', verbo
         print(f"getdata: api_server={api_server}, mtype={mtype}, id={oid}")
 
     r = requests.get(f"{api_server}/api/{mtype}s/{oid}/mdata", headers=headers)
-    print(f'r={r}, status_code={r.status_code}, text={r.text}')
     response = r.json()
     if r.status_code != 200:
         print(f"getdata: api_server={api_server}/api/{mtype}s/{oid}/mdata, mtype={mtype}, id={oid} response={response['detail']}")
         return None
 
-    print(f'getdata: response={response}')
+    if debug:
+        print(f'getdata: response={response}')
+    return response
+
+def postdata(api_server: str, headers: dict, data: dict, mtype: str='magnet', verbose: bool=False, debug: bool=False):
+    """
+    send data to create mtype object
+
+    """
+    if verbose:
+        print(f"postdata: api_server={api_server}, mtype={mtype}, data={data}")
+
+    r = requests.post(f"{api_server}/api/{mtype}s", data=data, headers=headers)
+    response = r.json()
+    if r.status_code != 200:
+        print(f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}")
+        return None
+
+    if debug:
+        print(f'postdata: response={response}')
     return response
 
 def download(api_server: str, headers: dict, attach: str, wd: str="", verbose: bool=False, debug: bool=False):
