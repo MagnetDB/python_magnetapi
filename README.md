@@ -27,5 +27,7 @@ export MAGNETDB_API_KEY=xxx
 python -m python_magnetapi.cli --help
 python -m python_magnetapi.cli --mtype magnet --name M19061901 compute --flow_params
 python -m python_magnetapi.cli --mtype part --name H15101601 compute --hoop_stress
+python -m python_magnetapi.cli --mtype material --name MA18090401 create --data '{"name": "tutu"}'
+python -m python_magnetapi.cli --mtype material --name MA18090401 create --file data.json
 ```
 

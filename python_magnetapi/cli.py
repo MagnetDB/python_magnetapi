@@ -27,7 +27,15 @@ def main():
         "--mtype",
         help="select object type",
         type=str,
-        choices=["part", "magnet", "site", "record", "server", "simulation"],
+        choices=[
+            "material",
+            "part",
+            "magnet",
+            "site",
+            "record",
+            "server",
+            "simulation",
+        ],
         default="magnet",
     )
     parser.add_argument(
@@ -53,6 +61,15 @@ def main():
     # view subcommand
 
     # create subcommand
+    # parser_create.add_argument("--data", help="specify data as dict", type=json.loads)
+    # parser_create.add_argument("--file", help="specify data as file", type=str)
+    command_group = parser_create.add_mutually_exclusive_group()
+    command_group.add_argument(
+        "--data", help="load data from dict", type=json.loads, nargs="?"
+    )
+    command_group.add_argument(
+        "--file", help="load data from file", type=str, nargs="?"
+    )
 
     # run subcommand
     parser_run.add_argument(
@@ -150,8 +167,36 @@ def main():
             # if part|magnet|site update associative tables
             # if record upload file to minio
 
+            data = {}
+            if args.data:
+                print(f"create: data={json.dumps(args.data, indent=4, default=str)}")
+                data = args.data
+                # how to validate data
+            if args.file:
+                print(f"create: file={args.file}")
+                with open(args.file, "r") as f:
+                    data = json.loads(f.read())
+                    print(f"data: {data}")
+
+            from .material import create as mat_create
+            from .site import create as site_create
+            from .magnet import create as magnet_create
+            from .part import create as part_create
+
+            ocreate = {
+                "material": mat_create,
+                "site": site_create,
+                "magnet": magnet_create,
+                "part": part_create,
+            }
+
+            id = ocreate[otype](
+                web, headers=headers, data=data, verbose=True, debug=args.debug
+            )
+
             # create material if not already done then part
-            print("create: not implemented")
+            if id is None:
+                print(f"create: type={otype}, name={args.name} not implemented")
 
         if args.command == "run":
             ids = utils.getlist(

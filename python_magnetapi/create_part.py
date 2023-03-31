@@ -1,8 +1,9 @@
 import os
+import sys
 
 import requests
 
-api_server = os.getenv('MAGNETDB_API_SERVER') or "http://magnetdb-api.grenoble.lncmi.local"
+api_server = os.getenv('MAGNETDB_API_SERVER') or "http://magnetdb-api.lncmig.local"
 
 material = 'tutu'
 r = requests.get(
@@ -13,13 +14,13 @@ r = requests.get(
 result_list = r.json()['items']
 for material in result_list:
     print(f"MATERIAL: {material['name']} ( id:{material['id']})")
-    if material['name'] == material_name:
+    if material['name'] == material:
         found = True
         break
 
 
 if not found:
-    print(f"materials: {material_name} not found in magnetdb ({api_server})")
+    print(f"materials: {material} not found in magnetdb ({api_server})")
     print(f"available materials: {[part['name'] for material in result_list]}")
     sys.exit(1)
 
@@ -30,10 +31,10 @@ if not found:
 r = requests.post(
     f"{api_server}:8000/api/parts",
     data={'name': input('Part name? '),
-          'description' : ,
-          'type':,
-          'material_id' ,
-          'desing_office_reference'
+          'description' : '',
+          'type': '',
+          'material_id': '' ,
+          'desing_office_reference': ''
           }
     headers={'Authorization': os.getenv('MAGNETDB_API_KEY')}
 )
@@ -47,14 +48,15 @@ else:
 # r = requests.get(f"{api_server}/api/parts/{{data['id']})}", headers={'Authorization': os.getenv('MAGNETDB_API_KEY')})
 # data = r.json()
 
+file = ''
 r = requests.patch(
-    f"{api_server}/api/magnets/{{data['id']})}",
+    f"{api_server}/api/magnets/{data['id']}",
     data={
         'name': data['name'],
-        'description': 'Part updated by API.'
-          'type':,
-          'material_id' ,
-          'desing_office_reference'
+        'description': 'Part updated by API.',
+        'type': '',
+        'material_id': '',
+        'desing_office_reference': ''
     },
     files={'geometry': file},
     headers={'Authorization': os.getenv('MAGNETDB_API_KEY')}

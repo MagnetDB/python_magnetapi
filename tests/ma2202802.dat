@@ -1,0 +1,1 @@
+{ "name": "testmat", "description": "test add mat from cli", "nuance": "CuAg5,5", "t_ref": 293, "volumic_mass": 9000.0, "alpha": 0.0036, "specific_heat": 4200, "electrical_conductivity": 53000000.0, "thermal_conductivity": 380, "magnet_permeability": 1, "young": 117000000000.0, "poisson": 0.33, "expansion_coefficient": 1.8e-05, "rpe": 500000000.0  }
