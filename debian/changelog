@@ -1,3 +1,9 @@
+python-magnetapi (0.0.1-1.1) unstable; urgency=medium
+
+  * up to git rev dee84f1
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 19 Jan 2023 07:58:25 +0100
+
 python-magnetapi (0.0.1-1) unstable; urgency=medium
 
   * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
