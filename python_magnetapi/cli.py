@@ -182,12 +182,14 @@ def main():
             from .site import create as site_create
             from .magnet import create as magnet_create
             from .part import create as part_create
+            from .record import create as record_create
 
             ocreate = {
                 "material": mat_create,
                 "site": site_create,
                 "magnet": magnet_create,
                 "part": part_create,
+                "record": record_create,
             }
 
             id = ocreate[otype](
