@@ -24,7 +24,7 @@ def create(
 
     else:
 
-        response = utils.postdata(api_server, headers, data, "material", verbose, debug)
+        response = utils.postjson(api_server, headers, data, "material", verbose, debug)
         if response is None:
             print(f"material {data['name']} failed to be created")
             return None
