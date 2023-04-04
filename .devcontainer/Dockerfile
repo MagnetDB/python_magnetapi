@@ -64,9 +64,6 @@ RUN apt update \
     && apt update \
     && apt-get -y install python3-magnetgeo python3-magnetrun python3-magnetsetup python3-rich
 
-# Install latest gmsh dev version (support for BoundingBox) ?
-RUN apt-get -y install libglu1-mesa libfltk-gl1.3 \
-    && python3 -m pip install -i https://gmsh.info/python-packages --force-reinstall --no-cache-dir gmsh
 
 # Clean up
 RUN apt-get autoremove -y \

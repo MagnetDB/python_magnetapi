@@ -35,10 +35,12 @@
 			"python.linting.pylintPath": "/usr/bin/pylint",
 			"python.testing.pytestPath": "/usr/bin/pytest-3"
 		},
-		"extensions": [
-			"ms-python.python",
-			"ms-python.vscode-pylance"
-		]
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance"
+			]
+		}
 	},
 	// Use 'appPort' to create a container with published ports. If the port isn't working, be sure
 	// your server accepts connections from all interfaces (0.0.0.0 or '*'), not just localhost.
