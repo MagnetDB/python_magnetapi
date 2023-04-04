@@ -204,7 +204,7 @@ def main():
 
             # create material if not already done then part
             if id is None:
-                print(f"create: type={otype}, name={args.name} not implemented")
+                print(f"create: type={otype}, name={data['name']} not implemented")
 
         if args.command == "delete":
             ids = utils.getlist(

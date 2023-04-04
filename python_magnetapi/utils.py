@@ -251,15 +251,39 @@ def postdata(
     if verbose:
         print(f"postdata: api_server={api_server}, mtype={mtype}, data={data}")
 
-    print(f"postdata: json={data}")
-    r = requests.post(
-        f"{api_server}/api/{mtype}s", data=json.dumps(data), headers=headers
-    )
+    r = requests.post(f"{api_server}/api/{mtype}s", data=data, headers=headers)
     response = r.json()
-    print(f"postdata: response={response}")
     if r.status_code != 200:
         print(
             f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+        )
+        return None
+
+    if debug:
+        print(f"postdata: response={response}")
+    return response
+
+
+def postjson(
+    api_server: str,
+    headers: dict,
+    data: dict,
+    mtype: str = "magnet",
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    send json to create mtype object
+
+    """
+    if verbose:
+        print(f"postjson: api_server={api_server}, mtype={mtype}, data={data}")
+
+    r = requests.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
+    response = r.json()
+    if r.status_code != 200:
+        print(
+            f"postjson: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
         )
         return None
 

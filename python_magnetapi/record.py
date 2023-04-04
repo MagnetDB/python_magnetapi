@@ -44,7 +44,7 @@ def create(
             print(f"data:{data}")
 
             # process record data: remove empty columns, rename columns, add Hoopstress data
-            response = utils.postdata(
+            response = utils.postjson(
                 api_server, headers, data, "clirecord", verbose, debug=True
             )
             if response is None:

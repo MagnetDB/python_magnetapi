@@ -29,7 +29,7 @@ def create(
         mat_ids = utils.getlist(
             api_server, headers=headers, mtype="material", debug=debug
         )
-        if mat_name in ids:
+        if mat_name in mat_ids:
             data["material_id"] = mat_ids[mat_name]
             del data["material"]
         else:
@@ -37,10 +37,16 @@ def create(
             return None
 
         # extract magnets list
-        magnets = data["magnets"].copy()
-        del data["magnets"]
+        magnets = []
+        if "magnets" in data:
+            magnets = data["magnets"].copy()
+            del data["magnets"]
+
+        if "status" in data:
+            del data["status"]
 
         # get material id, and set data accordingly
+        print(f"part/create: data={data}")
         response = utils.postdata(api_server, headers, data, "part", verbose, debug)
         if response is None:
             print(f"part {data['name']} failed to be created")
