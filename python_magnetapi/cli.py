@@ -38,9 +38,6 @@ def main():
         ],
         default="magnet",
     )
-    parser.add_argument(
-        "--name", help="specify an object name", type=str, default="None"
-    )
     parser.add_argument("--debug", help="activate debug mode", action="store_true")
 
     subparsers = parser.add_subparsers(
@@ -49,6 +46,7 @@ def main():
     parser_list = subparsers.add_parser("list", help="list help")
     parser_view = subparsers.add_parser("view", help="view help")
     parser_create = subparsers.add_parser("create", help="create help")
+    parser_delete = subparsers.add_parser("delete", help="create help")
     parser_run = subparsers.add_parser("run", help="run help")
     parser_compute = subparsers.add_parser("compute", help="compute help")
     parser_post = subparsers.add_parser("process", help="process help")
@@ -71,7 +69,15 @@ def main():
         "--file", help="load data from file", type=str, nargs="?"
     )
 
+    # delete sucommand
+    parser_delete.add_argument(
+        "--name", help="specify an object name", type=str, default="None"
+    )
+
     # run subcommand
+    parser_run.add_argument(
+        "--name", help="specify an object name", type=str, default="None"
+    )
     parser_run.add_argument(
         "--geometry",
         help="select a method",
@@ -199,6 +205,24 @@ def main():
             # create material if not already done then part
             if id is None:
                 print(f"create: type={otype}, name={args.name} not implemented")
+
+        if args.command == "delete":
+            ids = utils.getlist(
+                f"{web}", headers=headers, mtype=otype, debug=args.debug
+            )
+            if args.name in ids:
+                print(f"{args.name}: id={ids[args.name]}")
+                response = utils.delobject(
+                    f"{web}",
+                    headers=headers,
+                    mtype=otype,
+                    id=ids[args.name],
+                    debug=args.debug,
+                )
+            else:
+                raise RuntimeError(
+                    f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
+                )
 
         if args.command == "run":
             ids = utils.getlist(

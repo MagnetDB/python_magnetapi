@@ -2,6 +2,7 @@
 create record
 """
 
+import os
 import requests
 from . import utils
 from .attachment import create as attach_create

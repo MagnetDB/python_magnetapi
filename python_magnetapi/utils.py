@@ -99,15 +99,41 @@ def createobject(
     """
     print(f"createobject: api_server={api_server}, mtype={mtype}, data={data}")
 
-    r = requests.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
-    response = r.json()
-    if r.status_code != 200:
-        print(response["detail"])
+    response = None
+    if mtype == "attachment":
+        response = postfile(api_server, headers, data, mtype, verbose, debug)
+    else:
+        response = postdata(api_server, headers, data, mtype, verbose, debug)
+    if response is None:
         return None
     else:
         if debug:
             print(f"{mtype.upper()} created: \n{json.dumps(response, indent=4)}")
         return response["id"]
+
+
+def delobject(
+    api_server: str,
+    headers: dict,
+    mtype: str = "magnet",
+    id: int = None,
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    delete an object given its id
+    """
+    print(f"delobject: api_server={api_server}, mtype={mtype}, id={id}")
+    r = requests.post(
+        f"{api_server}/api/{mtype}s/{id}", data={"id": id}, headers=headers
+    )
+    response = r.json()
+    if r.status_code != 200:
+        print(response["detail"])
+        return None
+
+    print(response["detail"])
+    pass
 
 
 def addtoobject(
@@ -226,9 +252,41 @@ def postdata(
         print(f"postdata: api_server={api_server}, mtype={mtype}, data={data}")
 
     print(f"postdata: json={data}")
-    r = requests.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
+    r = requests.post(
+        f"{api_server}/api/{mtype}s", data=json.dumps(data), headers=headers
+    )
     response = r.json()
     print(f"postdata: response={response}")
+    if r.status_code != 200:
+        print(
+            f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+        )
+        return None
+
+    if debug:
+        print(f"postdata: response={response}")
+    return response
+
+
+def postfile(
+    api_server: str,
+    headers: dict,
+    data: dict,
+    mtype: str = "magnet",
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    send data to upload
+
+    """
+    if verbose:
+        print(f"postfile: api_server={api_server}, mtype={mtype}, files={data}")
+
+    print(f"postfile: files={data}")
+    r = requests.post(f"{api_server}/api/{mtype}s", files=data, headers=headers)
+    response = r.json()
+    print(f"postfile: response={response}")
     if r.status_code != 200:
         print(
             f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
