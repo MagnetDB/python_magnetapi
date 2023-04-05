@@ -82,3 +82,5 @@ postgres-data
 lemonldap-ng-data
 certs
 *.orig
+.pc
+*.png
