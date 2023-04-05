@@ -40,6 +40,7 @@ RUN apt-get update \
     && apt-get -y install python3-numpy python3-scipy \
     && apt-get -y install jsonlint yamllint \
     && apt-get -y install apt-file \
+    && apt-get -y install cm-super-minimal \
     && apt-file update \
     #\
     # Create a non-root user to use if preferred - see https://aka.ms/vscode-remote/containers/non-root-user.\
@@ -62,7 +63,7 @@ RUN apt update \
     && cp /usr/share/keyrings/debian-maintainers.gpg /etc/apt/trusted.gpg.d \
     && echo "deb http://euler.lncmig.local/~christophe.trophime@LNCMIG.local/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/lncmi.list \
     && apt update \
-    && apt-get -y install python3-magnetgeo python3-magnetrun python3-magnetsetup python3-rich
+    && apt-get -y install python3-magnetgeo python3-magnetrun python3-magnetsetup python3-freesteam python3-rich
 
 
 # Clean up
