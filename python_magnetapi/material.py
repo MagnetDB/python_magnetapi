@@ -17,14 +17,16 @@ def create(
     create a material from a data dictionnary
     """
 
-    ids = utils.getlist(api_server, headers=headers, mtype="material", debug=debug)
+    ids = utils.get_list(api_server, headers=headers, mtype="material", debug=debug)
     if data["name"] in ids:
         print(f"material with name={data['name']} already exists")
         return None
 
     else:
 
-        response = utils.postjson(api_server, headers, data, "material", verbose, debug)
+        response = utils.post_json(
+            api_server, headers, data, "material", verbose, debug
+        )
         if response is None:
             print(f"material {data['name']} failed to be created")
             return None

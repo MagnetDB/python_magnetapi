@@ -7,7 +7,7 @@ import requests
 import re
 
 
-def getlist(
+def get_list(
     api_server: str,
     headers: dict,
     mtype: str = "magnets",
@@ -18,7 +18,7 @@ def getlist(
     return list of ids for selected tpye
     """
     if verbose:
-        print(f"getlist: api_server={api_server}, mtype={mtype}")
+        print(f"get_list: api_server={api_server}, mtype={mtype}")
 
     # loop over pages
     objects = dict()
@@ -61,7 +61,7 @@ def getlist(
     return ids
 
 
-def getobject(
+def get_object(
     api_server: str,
     headers: dict,
     id: int,
@@ -73,20 +73,20 @@ def getobject(
     return id of an object with name == name
     """
     if verbose:
-        print(f"getobject: api_server={api_server}, mtype={mtype}, id={id}")
+        print(f"get_object: api_server={api_server}, mtype={mtype}, id={id}")
 
     r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
     response = r.json()
 
     if r.status_code != 200:
-        print(f"getobject: {api_server}/api/{mtype}s/{id}")
+        print(f"get_object: {api_server}/api/{mtype}s/{id}")
         print(response["detail"])
         return None
     else:
         return response
 
 
-def createobject(
+def create_object(
     api_server: str,
     headers: dict,
     mtype: str = "magnet",
@@ -97,13 +97,14 @@ def createobject(
     """
     create an object and return its id
     """
-    print(f"createobject: api_server={api_server}, mtype={mtype}, data={data}")
+    if verbose:
+        print(f"create_object: api_server={api_server}, mtype={mtype}, data={data}")
 
     response = None
     if mtype == "attachment":
-        response = postfile(api_server, headers, data, mtype, verbose, debug)
+        response = post_file(api_server, headers, data, mtype, verbose, debug)
     else:
-        response = postdata(api_server, headers, data, mtype, verbose, debug)
+        response = post_data(api_server, headers, data, mtype, verbose, debug)
     if response is None:
         return None
     else:
@@ -112,7 +113,7 @@ def createobject(
         return response["id"]
 
 
-def delobject(
+def del_object(
     api_server: str,
     headers: dict,
     mtype: str = "magnet",
@@ -123,8 +124,9 @@ def delobject(
     """
     delete an object given its id
     """
-    print(f"delobject: api_server={api_server}, mtype={mtype}, id={id}")
-    r = requests.post(
+    if verbose:
+        print(f"del_object: api_server={api_server}, mtype={mtype}, id={id}")
+    r = requests.delete(
         f"{api_server}/api/{mtype}s/{id}", data={"id": id}, headers=headers
     )
     response = r.json()
@@ -132,15 +134,16 @@ def delobject(
         print(response["detail"])
         return None
 
-    print(response["detail"])
+    print(response)
     pass
 
 
-def addtoobject(
+def add_data_to_object(
     api_server: str,
     headers: dict,
     id: int,
     mtype: str = "magnet",
+    dtype: str = "part",
     data: dict = {},
     files: dict() = {},
     verbose: bool = False,
@@ -151,12 +154,41 @@ def addtoobject(
     """
     if verbose:
         print(
-            f"addtoobject: api_server={api_server}, mtype={mtype}, id={id}, data={data}, files={files}"
+            f"add_data_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, data={data}"
         )
 
     r = requests.post(
-        f"{api_server}/api/{mtype}s/{id}/geometries",
+        f"{api_server}/api/{mtype}s/{id}/{dtype}s",
         json=data,
+        headers=headers,
+    )
+    response = r.json()
+    if r.status_code != 200:
+        print(response["detail"])
+        return None
+    pass
+
+
+def add_files_to_object(
+    api_server: str,
+    headers: dict,
+    id: int,
+    mtype: str = "part",
+    dtype: str = "geometrie",
+    files: dict = {},
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    add xx to an object
+    """
+    if verbose:
+        print(
+            f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
+        )
+
+    r = requests.post(
+        f"{api_server}/api/{mtype}s/{id}/{dtype}s",
         files=files,
         headers=headers,
     )
@@ -167,7 +199,7 @@ def addtoobject(
     pass
 
 
-def gethistory(
+def get_history(
     api_server: str,
     headers: dict,
     id: int,
@@ -183,14 +215,14 @@ def gethistory(
     """
     if verbose:
         print(
-            f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id}"
+            f"get_history: api_server={api_server}, mtype={mtype}, otype={otype}, id={id}"
         )
 
     r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
-            f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}"
+            f"get_history: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}"
         )
         return None
 
@@ -200,7 +232,7 @@ def gethistory(
         if r.status_code != 200:
             print(f"{api_server}/api/{mtype}s/{id}/{otype}s")
             print(
-                f"gethistory: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}"
+                f"get_history: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}"
             )
             return None
         return response[f"{otype}s"]
@@ -208,7 +240,7 @@ def gethistory(
     return []
 
 
-def getdata(
+def get_data(
     api_server: str,
     headers: dict,
     oid: int,
@@ -221,22 +253,22 @@ def getdata(
 
     """
     if verbose:
-        print(f"getdata: api_server={api_server}, mtype={mtype}, id={oid}")
+        print(f"get_data: api_server={api_server}, mtype={mtype}, id={oid}")
 
     r = requests.get(f"{api_server}/api/{mtype}s/{oid}/mdata", headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
-            f"getdata: api_server={api_server}/api/{mtype}s/{oid}/mdata, mtype={mtype}, id={oid} response={response['detail']}"
+            f"get_data: api_server={api_server}/api/{mtype}s/{oid}/mdata, mtype={mtype}, id={oid} response={response['detail']}"
         )
         return None
 
     if debug:
-        print(f"getdata: response={response}")
+        print(f"get_data: response={response}")
     return response
 
 
-def postdata(
+def post_data(
     api_server: str,
     headers: dict,
     data: dict,
@@ -249,22 +281,22 @@ def postdata(
 
     """
     if verbose:
-        print(f"postdata: api_server={api_server}, mtype={mtype}, data={data}")
+        print(f"post_data: api_server={api_server}, mtype={mtype}, data={data}")
 
     r = requests.post(f"{api_server}/api/{mtype}s", data=data, headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
-            f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+            f"post_data: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
         )
         return None
 
     if debug:
-        print(f"postdata: response={response}")
+        print(f"post_data: response={response}")
     return response
 
 
-def postjson(
+def post_json(
     api_server: str,
     headers: dict,
     data: dict,
@@ -277,22 +309,22 @@ def postjson(
 
     """
     if verbose:
-        print(f"postjson: api_server={api_server}, mtype={mtype}, data={data}")
+        print(f"post_json: api_server={api_server}, mtype={mtype}, data={data}")
 
     r = requests.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
-            f"postjson: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+            f"post_json: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
         )
         return None
 
     if debug:
-        print(f"postdata: response={response}")
+        print(f"post_json: response={response}")
     return response
 
 
-def postfile(
+def post_file(
     api_server: str,
     headers: dict,
     data: dict,
@@ -305,20 +337,20 @@ def postfile(
 
     """
     if verbose:
-        print(f"postfile: api_server={api_server}, mtype={mtype}, files={data}")
+        print(f"post_file: api_server={api_server}, mtype={mtype}, files={data}")
 
-    print(f"postfile: files={data}")
+    print(f"post_file: files={data}")
     r = requests.post(f"{api_server}/api/{mtype}s", files=data, headers=headers)
     response = r.json()
-    print(f"postfile: response={response}")
+    print(f"post_file: response={response}")
     if r.status_code != 200:
         print(
-            f"postdata: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+            f"post_file: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
         )
         return None
 
     if debug:
-        print(f"postdata: response={response}")
+        print(f"post_file: response={response}")
     return response
 
 

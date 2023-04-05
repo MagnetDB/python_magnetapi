@@ -42,7 +42,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
     Imax = flow_params["Imax"]["value"]  # 28000
 
     # get magnet type: aka bitter|helix|supra ??
-    odata = utils.getobject(
+    odata = utils.get_object(
         api_server,
         headers=headers,
         mtype="magnet",
@@ -71,7 +71,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             "M10": {"Rpm": "Rpm1", "Flow": "Flow1", "rlist": []},
         }
 
-    sites = utils.gethistory(
+    sites = utils.get_history(
         api_server, headers, oid, mtype="magnet", otype="site", debug=debug
     )
     for i, site in enumerate(sites):
@@ -86,7 +86,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
         for site in sites:
             sname = site["site"]["name"]
-            records = utils.gethistory(
+            records = utils.get_history(
                 api_server,
                 headers,
                 site["site_id"],
@@ -123,6 +123,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             if files:
                 # get keys to be extracted
                 df = pd.read_csv(files[0], sep="\s+", engine="python", skiprows=1)
+                # remove columns with zero
+                df = df.loc[:, (df != 0.0).any(axis=0)]
                 Ikey = "tttt"
 
                 # get first Icoil column (not necessary Icoil1)
@@ -152,6 +154,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 # TODO update interface with name=f'{sname}_{mname}'
                 plot_files(
+                    f"{sname}-{mname}",
                     files,
                     key1=Ikey,
                     key2=fit_data[housing]["Rpm"],

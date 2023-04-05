@@ -113,6 +113,9 @@ def main():
     # stats subcommand
     # compute
     parser_compute.add_argument(
+        "--name", help="specify an object name", type=str, default="None"
+    )
+    parser_compute.add_argument(
         "--flow_params", help="activate flow params", action="store_true"
     )
     parser_compute.add_argument(
@@ -140,7 +143,7 @@ def main():
             )
 
         if args.command == "list":
-            ids = utils.getlist(
+            ids = utils.get_list(
                 f"{web}", headers=headers, mtype=otype, debug=args.debug
             )
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
@@ -149,12 +152,12 @@ def main():
 
         if args.command == "view":
             # add a filter for view
-            ids = utils.getlist(
+            ids = utils.get_list(
                 f"{web}", headers=headers, mtype=otype, debug=args.debug
             )
             print(f"view: ids={ids}")
             if args.name in ids:
-                response = utils.getobject(
+                response = utils.get_object(
                     f"{web}",
                     headers=headers,
                     mtype=otype,
@@ -207,16 +210,17 @@ def main():
                 print(f"create: type={otype}, name={data['name']} not implemented")
 
         if args.command == "delete":
-            ids = utils.getlist(
+            ids = utils.get_list(
                 f"{web}", headers=headers, mtype=otype, debug=args.debug
             )
             if args.name in ids:
                 print(f"{args.name}: id={ids[args.name]}")
-                response = utils.delobject(
+                response = utils.del_object(
                     f"{web}",
                     headers=headers,
                     mtype=otype,
                     id=ids[args.name],
+                    verbose=True,
                     debug=args.debug,
                 )
             else:
@@ -225,11 +229,11 @@ def main():
                 )
 
         if args.command == "run":
-            ids = utils.getlist(
+            ids = utils.get_list(
                 f"{web}", headers=headers, mtype=otype, debug=args.debug
             )
             if args.name in ids:
-                response = utils.getobject(
+                response = utils.get_object(
                     f"{web}",
                     headers=headers,
                     mtype=otype,
@@ -260,7 +264,7 @@ def main():
 
             # check parameters consistency: see allowed_methods in
             # create simu
-            simu_id = utils.createobject(
+            simu_id = utils.create_object(
                 f"{api}/simulations",
                 headers=headers,
                 mtype="simulation",
@@ -273,7 +277,7 @@ def main():
             r = requests.post(f"{api}/simulations/{simu_id}/run_setup", headers=headers)
 
             while True:
-                simulation = utils.getobject(
+                simulation = utils.get_object(
                     f"{web}",
                     headers=headers,
                     mtype="simulation",
@@ -290,7 +294,7 @@ def main():
 
             if not args.setup:
                 # Run simu with ssh
-                ids = utils.getlist(
+                ids = utils.get_list(
                     f"{web}", headers=headers, mtype="server", debug=args.debug
                 )
                 if args.compute_server in ids:
@@ -301,7 +305,7 @@ def main():
                     )
 
                 # TODO get server data - aka np
-                server_data = utils.getobject(
+                server_data = utils.get_object(
                     f"{web}",
                     headers=headers,
                     mtype="server",
@@ -316,7 +320,7 @@ def main():
                     headers=headers,
                 )
                 while True:
-                    simulation = utils.getobject(
+                    simulation = utils.get_object(
                         f"{web}",
                         headers=headers,
                         mtype="simulation",
@@ -338,11 +342,11 @@ def main():
                         f"unexpected type {args.mtype} in compute subcommand flow_params - should be magnet"
                     )
 
-                ids = utils.getlist(
+                ids = utils.get_list(
                     f"{web}", headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
-                    response = utils.getobject(
+                    response = utils.get_object(
                         f"{web}",
                         headers=headers,
                         mtype=otype,
@@ -368,11 +372,11 @@ def main():
                         f"unexpected type {args.mtype} in compute subcommand hoop_stress"
                     )
 
-                ids = utils.getlist(
+                ids = utils.get_list(
                     f"{web}", headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
-                    response = utils.getobject(
+                    response = utils.get_object(
                         f"{web}",
                         headers=headers,
                         mtype=otype,
