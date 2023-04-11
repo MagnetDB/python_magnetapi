@@ -25,16 +25,33 @@ def create(
 
     else:
         # search or create material in db
-        mat_name = data["material"]
         mat_ids = utils.get_list(
             api_server, headers=headers, mtype="material", debug=debug
         )
-        if mat_name in mat_ids:
-            data["material_id"] = mat_ids[mat_name]
+        mat = data["material"]
+        if isinstance(mat, str):
+            if mat in mat_ids:
+                data["material_id"] = mat_ids[mat]
+                del data["material"]
+            else:
+                print(f"part {data['name']} failed to be created: no material {mat}")
+                return None
+        elif isinstance(mat, dict):
+            mname = mat["name"]
+            _id = -1
+            if mname in mat_ids:
+                _id = mat_ids[mname]
+            else:
+                _id = material.create(
+                    api_server, headers, mat, verbose=verbose, debug=debug
+                )
+
+            data["material_id"] = _id
             del data["material"]
         else:
-            print(f"part {data['name']} failed to be created: no material {mat_name}")
-            return None
+            raise RuntimeError(
+                f"part/create: unexpected type for material (type={type(mat)}) - should be str or dict"
+            )
 
         # extract magnets list
         magnets = []

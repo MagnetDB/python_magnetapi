@@ -4,7 +4,7 @@ create magnet
 
 import requests
 from . import utils
-from .part import create as part_create
+from . import part
 
 
 def create(
@@ -51,24 +51,52 @@ def create(
             _ids = utils.get_list(
                 api_server, headers=headers, mtype="part", debug=debug
             )
-            # TODO if part is a string use procedure bellow,
-            # otherwise if part is a dict simple call create method from part.py
-            if part in _ids:
-                pdata = {"part_id": _ids[part]}
-                # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
-                # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
+            if isinstance(part, str):
+                # TODO if part is a string use procedure bellow,
+                # otherwise if part is a dict simple call create method from part.py
+                if part in _ids:
+                    pdata = {"part_id": _ids[part]}
+                    # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
+                    # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
+                    utils.add_data_to_object(
+                        api_server,
+                        headers,
+                        magnet_id,
+                        mtype="magnet",
+                        dtype="part",
+                        data=pdata,
+                        verbose=verbose,
+                        debug=debug,
+                    )
+                else:
+                    print(
+                        f"magnet {data['name']} failed to add part {part} - no such part"
+                    )
+
+            elif isinstance(part, dict):
+                pname = part["name"]
+                _id = -1
+                if pname in _ids:
+                    _id = pdata = {"part_id": _ids[part]}
+                else:
+                    _id = part.create(
+                        api_server, headers, part, verbose=verbose, debug=debug
+                    )
+
                 utils.add_data_to_object(
                     api_server,
                     headers,
                     magnet_id,
                     mtype="magnet",
                     dtype="part",
-                    data=pdata,
+                    data={"part_id": _id},
                     verbose=verbose,
                     debug=debug,
                 )
             else:
-                print(f"magnet {data['name']} failed to add part {part} - no such part")
+                raise RuntimeError(
+                    f"magnet/create: unexpected type for part (type={type(part)}) - should be str or dict"
+                )
 
         for site in sites:
             _ids = utils.get_list(

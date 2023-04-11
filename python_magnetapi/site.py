@@ -5,6 +5,7 @@ create site
 import requests
 from . import utils
 from . import magnet
+from . import record
 
 
 def create(
@@ -33,6 +34,14 @@ def create(
         if "status" in data:
             del data["status"]
 
+        records = []
+        if "records" in data:
+            records = data["records"].copy()
+            del data["records"]
+
+        if "status" in data:
+            del data["status"]
+
         response = utils.post_data(api_server, headers, data, "site", verbose, debug)
         if response is None:
             print(f"site {data['name']} failed to be created")
@@ -44,12 +53,37 @@ def create(
 
         for magnet in data["magnets"]:
             _ids = utils.getl_ist(
-                api_server, headers=headers, mtype="part", debug=debug
+                api_server, headers=headers, mtype="magnet", debug=debug
             )
-            if magnet in _ids:
-                _id = _ids[magnet]
-                # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
-                # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
+            if isinstance(magnet, str):
+                if magnet in _ids:
+                    _id = _ids[magnet]
+                    utils.add_data_to_object(
+                        api_server,
+                        headers,
+                        site_id,
+                        mtype="site",
+                        dtype="magnet",
+                        data={"magnet_id": _id},
+                        verbose=verbose,
+                        debug=debug,
+                    )
+                else:
+                    print(
+                        f"site {data['name']} failed to add magnet {magnet} - no such magnet"
+                    )
+
+            elif isinstance(magnet, dict):
+                mname = magnet["name"]
+                _id = -1
+                if mname in _ids:
+                    _id = _ids[magnet["name"]]
+                else:
+                    _id = magnet.create(
+                        api_server, headers, magnet, verbose=verbose, debug=debug
+                    )
+
+                # call to api/sites/{site_id}/magnets with magnetid = _id
                 utils.add_data_to_object(
                     api_server,
                     headers,
@@ -61,9 +95,21 @@ def create(
                     debug=debug,
                 )
             else:
-                print(
-                    f"site {data['name']} failed to add magnet {magnet} - no such magnet"
+                raise RuntimeError(
+                    f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
                 )
 
+        for record in records:
+            if not isinstance(record, dict):
+                raise RuntimeError(
+                    f"site/create: unexpected type for record (type={type(record)}) - should be dict"
+                )
+            _id = record.create(
+                api_server, headers, record, verbose=verbose, debug=debug
+            )
+
         # add site description
+        # add status
+        # putinoperation: /api/sites/{id}/put_in_operation
+        # shutdown: "/api/sites/{id}/shutdown
         return response["id"]
