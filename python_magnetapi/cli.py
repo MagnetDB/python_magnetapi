@@ -23,21 +23,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="specify server", type=str, default=api_server)
     parser.add_argument("--port", help="specify port", type=int, default=8000)
-    parser.add_argument(
-        "--mtype",
-        help="select object type",
-        type=str,
-        choices=[
-            "material",
-            "part",
-            "magnet",
-            "site",
-            "record",
-            "server",
-            "simulation",
-        ],
-        default="magnet",
-    )
     parser.add_argument("--debug", help="activate debug mode", action="store_true")
 
     subparsers = parser.add_subparsers(
@@ -55,8 +40,41 @@ def main():
     # get object as json???
 
     # list subcommand
+    parser_list.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "material",
+            "part",
+            "magnet",
+            "site",
+            "record",
+            "server",
+            "simulation",
+        ],
+        default="magnet",
+    )
 
     # view subcommand
+    parser_view.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "material",
+            "part",
+            "magnet",
+            "site",
+            "record",
+            "server",
+            "simulation",
+        ],
+        default="magnet",
+    )
+    parser_view.add_argument(
+        "--name", help="specify an object name", type=str, default="None"
+    )
 
     # create subcommand
     # parser_create.add_argument("--data", help="specify data as dict", type=json.loads)
@@ -69,15 +87,49 @@ def main():
         "--file", help="load data from file", type=str, nargs="?"
     )
 
-    # delete sucommand
+    # delete subcommand
+    parser_delete.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "material",
+            "part",
+            "magnet",
+            "site",
+            "record",
+            "server",
+            "simulation",
+        ],
+        default="magnet",
+    )
     parser_delete.add_argument(
         "--name", help="specify an object name", type=str, default="None"
     )
 
     # run subcommand
     parser_run.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "magnet",
+            "site",
+        ],
+        default="magnet",
+    )
+    parser_run.add_argument(
         "--name", help="specify an object name", type=str, default="None"
     )
+    parser_run.add_argument(
+        "--current",
+        help="specify requested current (default: 31kA)",
+        nargs="+",
+        metavar="Current",
+        type=float,
+        default=[31.0e3],
+    )
+
     parser_run.add_argument(
         "--geometry",
         help="select a method",
@@ -113,6 +165,18 @@ def main():
     # stats subcommand
     # compute
     parser_compute.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "part",
+            "magnet",
+            "site",
+            "record",
+        ],
+        default="magnet",
+    )
+    parser_compute.add_argument(
         "--name", help="specify an object name", type=str, default="None"
     )
     parser_compute.add_argument(
@@ -130,10 +194,9 @@ def main():
     payload = {}
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
     web = f"http://{args.server}:{args.port}"
-    api = f"{web}/api"
 
     with requests.Session() as s:
-        r = s.get(f"{api}/{otype}s", headers=headers)
+        r = s.get(f"{web}/api/{otype}s", headers=headers)
         response = r.json()
         if args.debug:
             print(f"response={response}")
@@ -143,22 +206,18 @@ def main():
             )
 
         if args.command == "list":
-            ids = utils.get_list(
-                f"{web}", headers=headers, mtype=otype, debug=args.debug
-            )
+            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
             for obj in ids:
                 print(f"{args.mtype.upper()}: {obj}, id={ids[obj]}")
 
         if args.command == "view":
             # add a filter for view
-            ids = utils.get_list(
-                f"{web}", headers=headers, mtype=otype, debug=args.debug
-            )
+            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
             print(f"view: ids={ids}")
             if args.name in ids:
                 response = utils.get_object(
-                    f"{web}",
+                    web,
                     headers=headers,
                     mtype=otype,
                     id=ids[args.name],
@@ -210,13 +269,11 @@ def main():
                 print(f"create: type={otype}, name={data['name']} not implemented")
 
         if args.command == "delete":
-            ids = utils.get_list(
-                f"{web}", headers=headers, mtype=otype, debug=args.debug
-            )
+            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
             if args.name in ids:
                 print(f"{args.name}: id={ids[args.name]}")
                 response = utils.del_object(
-                    f"{web}",
+                    web,
                     headers=headers,
                     mtype=otype,
                     id=ids[args.name],
@@ -229,12 +286,15 @@ def main():
                 )
 
         if args.command == "run":
-            ids = utils.get_list(
-                f"{web}", headers=headers, mtype=otype, debug=args.debug
-            )
+            if otype not in ["site", "magnet"]:
+                raise RuntimeError(
+                    f"unexpected type {args.mtype} in run subcommand - expect mtype=site|magnet"
+                )
+
+            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
             if args.name in ids:
                 response = utils.get_object(
-                    f"{web}",
+                    web,
                     headers=headers,
                     mtype=otype,
                     id=ids[args.name],
@@ -245,12 +305,45 @@ def main():
                     f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
                 )
 
-            if otype not in ["site", "magnet"]:
-                raise RuntimeError(f"unexpected type {args.mtype} in run subcommand")
-
             # TODO: add flow_params
             # use flow_params from magnetsetup if no records attached to object id
             # otherwise try to get flow_params from db or create it
+            # TODO:  add current_data
+            # currents: List[CreatePayloadCurrent]
+            # with CreatePayloadCurrent(BaseModel): magnet_id: int, value: float
+            object = utils.get_object(
+                web,
+                headers,
+                ids[args.name],
+                mtype=otype,
+                verbose=True,
+                debug=args.debug,
+            )
+
+            currents = []
+            if otype == "site":
+                if len(args.current) != len(object["site_magnets"]):
+                    raise RuntimeError(
+                        f"args.current contains {len(args.current)} values - should have {len(object['site_magnets'])} values"
+                    )
+
+                for i, magnet in enumerate(object["site_magnets"]):
+                    print(f"current[{i}]: magnet={magnet}")
+                    current_data = {
+                        "magnet_id": magnet["magnet_id"],
+                        "value": args.current[i],
+                    }
+                    currents.append(current_data)
+            else:
+                if len(args.current) != 1:
+                    raise RuntimeError(
+                        f"args.current contains {len(args.current)} values - should have 1 value"
+                    )
+
+                current_data = {"magnet_id": ids[args.name], "value": args.current[0]}
+                currents.append(current_data)
+            print(f"currents: {currents}")
+
             sim_data = {
                 "resource_type": args.mtype,
                 "resource_id": ids[args.name],
@@ -260,25 +353,33 @@ def main():
                 "cooling": args.cooling,
                 "static": args.static,
                 "non_linear": args.nonlinear,
+                "currents": currents,
             }
 
             # check parameters consistency: see allowed_methods in
             # create simu
             simu_id = utils.create_object(
-                f"{api}/simulations",
+                f"{web}/api/simulations",
                 headers=headers,
                 mtype="simulation",
                 data=sim_data,
+                verbose=True,
                 debug=args.debug,
             )
+            if simu_id is None:
+                raise RuntimeError(
+                    f"failed to create simulation for {args.mtype} {args.name} in run subcommand"
+                )
 
             # run setup
             print("Starting setup...")
-            r = requests.post(f"{api}/simulations/{simu_id}/run_setup", headers=headers)
+            r = requests.post(
+                f"{web}/api/simulations/{simu_id}/run_setup", headers=headers
+            )
 
             while True:
                 simulation = utils.get_object(
-                    f"{web}",
+                    web,
                     headers=headers,
                     mtype="simulation",
                     id=simu_id,
@@ -295,7 +396,7 @@ def main():
             if not args.setup:
                 # Run simu with ssh
                 ids = utils.get_list(
-                    f"{web}", headers=headers, mtype="server", debug=args.debug
+                    web, headers=headers, mtype="server", debug=args.debug
                 )
                 if args.compute_server in ids:
                     server_id = ids[args.compute_server]
@@ -306,7 +407,7 @@ def main():
 
                 # TODO get server data - aka np
                 server_data = utils.get_object(
-                    f"{web}",
+                    web,
                     headers=headers,
                     mtype="server",
                     id=server_id,
@@ -315,13 +416,13 @@ def main():
 
                 print("Starting simulation...")
                 r = requests.post(
-                    f"{api}/simulations/{simu_id}/run",
+                    f"{web}/api/simulations/{simu_id}/run",
                     data={"server_id": server_id},
                     headers=headers,
                 )
                 while True:
                     simulation = utils.get_object(
-                        f"{web}",
+                        web,
                         headers=headers,
                         mtype="simulation",
                         id=simu_id,
@@ -343,11 +444,11 @@ def main():
                     )
 
                 ids = utils.get_list(
-                    f"{web}", headers=headers, mtype=otype, debug=args.debug
+                    web, headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
                     response = utils.get_object(
-                        f"{web}",
+                        web,
                         headers=headers,
                         mtype=otype,
                         id=ids[args.name],
@@ -356,7 +457,7 @@ def main():
                     from . import flow_params
 
                     flow_params.compute(
-                        f"{web}",
+                        web,
                         headers=headers,
                         oid=ids[args.name],
                         debug=args.debug,
@@ -373,11 +474,11 @@ def main():
                     )
 
                 ids = utils.get_list(
-                    f"{web}", headers=headers, mtype=otype, debug=args.debug
+                    web, headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
                     response = utils.get_object(
-                        f"{web}",
+                        web,
                         headers=headers,
                         mtype=otype,
                         id=ids[args.name],
@@ -386,7 +487,7 @@ def main():
                     from . import hoop_stress
 
                     hoop_stress.compute(
-                        f"{web}",
+                        web,
                         headers=headers,
                         mtype=otype,
                         oid=ids[args.name],
