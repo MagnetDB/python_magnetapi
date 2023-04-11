@@ -100,17 +100,27 @@ def create_object(
     if verbose:
         print(f"create_object: api_server={api_server}, mtype={mtype}, data={data}")
 
-    response = None
-    if mtype == "attachment":
-        response = post_file(api_server, headers, data, mtype, verbose, debug)
+    r = None
+    if mtype in ["attachment"]:
+        r = requests.post(api_server, files=data, headers=headers)
+    elif mtype in ["simulation", "material", "record"]:
+        r = requests.post(api_server, json=data, headers=headers)
     else:
-        response = post_data(api_server, headers, data, mtype, verbose, debug)
-    if response is None:
+        r = requests.post(api_server, data=data, headers=headers)
+
+    response = r.json()
+    if r.status_code != 200:
+        print(
+            f"create_object: api_server={api_server}, mtype={mtype}, response={response['detail']}"
+        )
         return None
-    else:
-        if debug:
-            print(f"{mtype.upper()} created: \n{json.dumps(response, indent=4)}")
-        return response["id"]
+
+    if debug:
+        print(
+            f"create_object: {api_server}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+        )
+
+    return response
 
 
 def del_object(
