@@ -34,7 +34,14 @@ def create(
             sites = data["sites"].copy()
             del data["sites"]
 
+        geometries = []
+        if "geometry" in data:
+            geometries = data["geometry"].copy()
+            del data["geometry"]
+
+        status = ""
         if "status" in data:
+            status = data["status"]
             del data["status"]
 
         # data: extract only necessary data for creation
@@ -121,7 +128,21 @@ def create(
                     f"magnet {data['name']} failed to attach to site {site} - no such site"
                 )
 
-        # add magnet info
+        # add magnet geometry
+        if geometries:
+            geomfile = f"{geometries[0]}.yaml"
+            utils.add_data_files_to_object(
+                api_server,
+                headers,
+                response["id"],
+                "magnet",
+                "geometrie",
+                data={"type": "default"},
+                files={"geometry": geomfile},
+                verbose=verbose,
+                debug=debug,
+            )
+
         # add cad
         # add status
 

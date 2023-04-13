@@ -19,7 +19,6 @@ api_key = os.getenv("MAGNETDB_API_KEY")
 
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="specify server", type=str, default=api_server)
     parser.add_argument("--port", help="specify port", type=int, default=8000)
@@ -198,6 +197,7 @@ def main():
     with requests.Session() as s:
         r = s.get(f"{web}/api/{otype}s", headers=headers)
         response = r.json()
+        # print(f"response={response}")
         if args.debug:
             print(f"response={response}")
         if "detail" in response and response["detail"] == "Forbidden.":
@@ -359,7 +359,7 @@ def main():
             # check parameters consistency: see allowed_methods in
             # create simu
             simu_id = utils.create_object(
-                f"{web}/api/simulations",
+                web,
                 headers=headers,
                 mtype="simulation",
                 data=sim_data,

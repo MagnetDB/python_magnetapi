@@ -110,6 +110,6 @@ def create(
 
         # add site description
         # add status
-        # putinoperation: /api/sites/{id}/put_in_operation
-        # shutdown: "/api/sites/{id}/shutdown
+        # putinoperation: patch /api/sites/{id}/put_in_operation
+        # shutdown: patch "/api/sites/{id}/shutdown
         return response["id"]

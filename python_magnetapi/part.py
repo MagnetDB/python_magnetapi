@@ -60,11 +60,13 @@ def create(
             del data["magnets"]
 
         geometries = []
-        if "geometries" in data:
-            geometries = data["geometries"].copy()
-            del data["geometries"]
+        if "geometry" in data:
+            geometries = data["geometry"].copy()
+            del data["geometry"]
 
+        status = ""
         if "status" in data:
+            status = data["status"]
             del data["status"]
 
         # get material id, and set data accordingly
@@ -101,6 +103,20 @@ def create(
                 )
 
         # add geometry: see add_geometry_to_part.py
+        if geometries:
+            geomfile = f"{geometries[0]}.yaml"
+            utils.add_data_files_to_object(
+                api_server,
+                headers,
+                response["id"],
+                "part",
+                "geometrie",
+                data={"type": "default"},
+                files={"geometry": geomfile},
+                verbose=verbose,
+                debug=debug,
+            )
+
         # add cad, ...
         # see also status in python_magnetdb/models/status.py
         # how to change timestamps

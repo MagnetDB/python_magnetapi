@@ -30,7 +30,10 @@ def get_list(
         if r.status_code != 200:
             print(response["detail"])
             break
-
+        if debug:
+            print(
+                f"get_list: {api_server}/api/{mtype}s?page={n}, headers={headers}, res={r.text}"
+            )
         response = r.json()
 
         # check r.json() pages max
@@ -42,6 +45,16 @@ def get_list(
         if debug:
             print(f"_page_dict={_page_dict}")
         for object in _page_dict:
+            if mtype == "simulation":
+                print(f"object: {object}")
+                resource_type = object["resource_type"][:-1]
+                resource_id = object["resource_id"]
+                resource = get_object(
+                    api_server, headers, resource_id, resource_type, verbose, debug
+                )
+                object[
+                    "name"
+                ] = f"{resource['name']}: {object['method']}/{object['geometry']}/{object['model']}/{object['cooling']}"
             objects[object["name"]] = object
 
         # increment page
@@ -100,24 +113,96 @@ def create_object(
     if verbose:
         print(f"create_object: api_server={api_server}, mtype={mtype}, data={data}")
 
+    web = f"{api_server}/api/{mtype}s"
     r = None
     if mtype in ["attachment"]:
-        r = requests.post(api_server, files=data, headers=headers)
+        r = requests.post(web, files=data, headers=headers)
     elif mtype in ["simulation", "material", "record"]:
-        r = requests.post(api_server, json=data, headers=headers)
+        r = requests.post(web, json=data, headers=headers)
     else:
-        r = requests.post(api_server, data=data, headers=headers)
+        r = requests.post(web, data=data, headers=headers)
 
     response = r.json()
     if r.status_code != 200:
         print(
-            f"create_object: api_server={api_server}, mtype={mtype}, response={response['detail']}"
+            f"create_object: api_server={web}, mtype={mtype}, response={response['detail']}"
         )
         return None
 
     if debug:
         print(
-            f"create_object: {api_server}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+            f"create_object: {web}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+        )
+
+    return response["id"]
+
+
+def update_object(
+    api_server: str,
+    headers: dict,
+    id: int,
+    mtype: str = "magnet",
+    data: dict = {},
+    files: dict = {},
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    update an object
+    """
+    if verbose:
+        print(f"update_object: api_server={api_server}, mtype={mtype}, data={data}")
+
+    web = f"{api_server}/api/{mtype}s/{id}"
+    r = requests.patch(web, data=data, headers=headers)
+
+    response = r.json()
+    if r.status_code != 200:
+        print(
+            f"update_object: api_server={web}, mtype={mtype}, response={response['detail']}"
+        )
+        return None
+
+    if debug:
+        print(
+            f"update_object: {web}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+        )
+
+    return response
+
+
+def update_associative_object(
+    api_server: str,
+    headers: dict,
+    id: int,
+    mtype: str = "magnet",
+    dtype: str = "part",
+    data: dict = {},
+    files: dict = {},
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    update an object in associative table
+    """
+    if verbose:
+        print(
+            f"update_associative_object: api_server={api_server}, mtype={mtype}, data={data}"
+        )
+
+    web = f"{api_server}/api/{mtype}s/{id}/{dtype}s"
+    r = requests.patch(web, data=data, headers=headers)
+
+    response = r.json()
+    if r.status_code != 200:
+        print(
+            f"update_associative_object: api_server={web}, mtype={mtype}, response={response['detail']}"
+        )
+        return None
+
+    if debug:
+        print(
+            f"update_associative_object: {web}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
         )
 
     return response
@@ -145,7 +230,7 @@ def del_object(
         return None
 
     print(response)
-    pass
+    return response
 
 
 def add_data_to_object(
@@ -160,7 +245,7 @@ def add_data_to_object(
     debug: bool = False,
 ):
     """
-    add xx to an object
+    add data to an object
     """
     if verbose:
         print(
@@ -190,7 +275,7 @@ def add_files_to_object(
     debug: bool = False,
 ):
     """
-    add xx to an object
+    add files to an object
     """
     if verbose:
         print(
@@ -199,6 +284,38 @@ def add_files_to_object(
 
     r = requests.post(
         f"{api_server}/api/{mtype}s/{id}/{dtype}s",
+        files=files,
+        headers=headers,
+    )
+    response = r.json()
+    if r.status_code != 200:
+        print(response["detail"])
+        return None
+    pass
+
+
+def add_data_files_to_object(
+    api_server: str,
+    headers: dict,
+    id: int,
+    mtype: str = "part",
+    dtype: str = "geometrie",
+    data: dict = {},
+    files: dict = {},
+    verbose: bool = False,
+    debug: bool = False,
+):
+    """
+    add data and files to an object
+    """
+    if verbose:
+        print(
+            f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
+        )
+
+    r = requests.post(
+        f"{api_server}/api/{mtype}s/{id}/{dtype}s",
+        data=data,
         files=files,
         headers=headers,
     )
