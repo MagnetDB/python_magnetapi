@@ -32,7 +32,8 @@ python -m python_magnetapi.cli create --mtype material --file data.json
 python -m python_magnetapi.cli delete --mtype material --name testmat2
 python -m python_magnetapi.cli compute --mtype magnet  --name M19061901 --flow_params
 python -m python_magnetapi.cli compute  --mtype part --name H15101601--hoop_stress
-python -m python_magnetapi.cli run --mtype site --name M10_M19020601 --setup --method cfpdes --static --geometry Axi --model thelec --cooling mean --current 31000 12000 100
+python -m python_magnetapi.cli setup --mtype site --name M10_M19020601 --method cfpdes --static --geometry Axi --model thelec --cooling mean --current 31000 12000 100 [--wd path_to_store_setup]
+python -m python_magnetapi.cli run --simu_id id [--wd path_to_store_results]
 ```
 
 ## Running the test suite
