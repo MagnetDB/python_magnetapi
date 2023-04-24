@@ -31,6 +31,8 @@ def main():
     parser_view = subparsers.add_parser("view", help="view help")
     parser_create = subparsers.add_parser("create", help="create help")
     parser_delete = subparsers.add_parser("delete", help="create help")
+
+    parser_setup = subparsers.add_parser("setup", help="run help")
     parser_run = subparsers.add_parser("run", help="run help")
     parser_compute = subparsers.add_parser("compute", help="compute help")
     parser_post = subparsers.add_parser("process", help="process help")
@@ -107,7 +109,7 @@ def main():
     )
 
     # run subcommand
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--mtype",
         help="select object type",
         type=str,
@@ -117,10 +119,10 @@ def main():
         ],
         default="magnet",
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--name", help="specify an object name", type=str, default="None"
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--current",
         help="specify requested current (default: 31kA)",
         nargs="+",
@@ -129,33 +131,50 @@ def main():
         default=[31.0e3],
     )
 
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--geometry",
         help="select a method",
         type=str,
         choices=["Axi", "3D"],
         default="Axi",
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--static", help="activate static mode", action="store_true"
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--nonlinear", help="activate non_linear", action="store_true"
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--method", help="select a method", type=str, default="cfpdes"
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--model", help="select a model", type=str, default="thmagel_hcurl"
     )
-    parser_run.add_argument(
+    parser_setup.add_argument(
         "--cooling",
         help="select a cooling mode",
         type=str,
         choices=["mean", "meanH", "grad", "gradH"],
         default="meanH",
     )
-    parser_run.add_argument("--setup", help="activate setup only", action="store_true")
+    parser_setup.add_argument(
+        "--wd",
+        help="select directory to store setup/sumalation results",
+        type=str,
+        default=".",
+    )
+
+    # run subcommand
+    parser_run.add_argument(
+        "--simu_id", help="select simulation id", type=int, default=-1
+    )
+    parser_run.add_argument(
+        "--wd",
+        help="select directory to store setup/sumalation results",
+        type=str,
+        default=".",
+    )
+
     parser_run.add_argument(
         "--compute_server", help="choose compute node", type=str, default="calcul22"
     )
@@ -285,7 +304,7 @@ def main():
                     f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
                 )
 
-        if args.command == "run":
+        if args.command == "setup":
             if otype not in ["site", "magnet"]:
                 raise RuntimeError(
                     f"unexpected type {args.mtype} in run subcommand - expect mtype=site|magnet"
@@ -302,7 +321,7 @@ def main():
                 )
             else:
                 raise RuntimeError(
-                    f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
+                    f"run: cannot found {args.name} in {args.mtype.upper()} objects"
                 )
 
             # TODO: add flow_params
@@ -340,7 +359,10 @@ def main():
                         f"args.current contains {len(args.current)} values - should have 1 value"
                     )
 
-                current_data = {"magnet_id": ids[args.name], "value": args.current[0]}
+                current_data = {
+                    "magnet_id": ids[args.name],
+                    "value": args.current[0],
+                }
                 currents.append(current_data)
             print(f"currents: {currents}")
 
@@ -389,52 +411,87 @@ def main():
                     break
                 sleep(10)
 
-            print(f"Setup done: status={simulation['set_status']}")
+            print(f"Setup done: simulation={simulation}")
+            print(f'Setup done: status={simulation["setup_status"]}')
             if simulation["setup_status"] == "failed":
                 sys.exit(1)
 
-            if not args.setup:
-                # Run simu with ssh
-                ids = utils.get_list(
-                    web, headers=headers, mtype="server", debug=args.debug
-                )
-                if args.compute_server in ids:
-                    server_id = ids[args.compute_server]
-                else:
-                    raise RuntimeError(
-                        f"{args.server} : cannot found {args.name} in server objects"
-                    )
+            setup_arch_id = simulation["setup_output_attachment"]["id"]
+            setup_filename = utils.download(
+                web,
+                headers=headers,
+                attach=setup_arch_id,
+                wd=args.wd,
+                debug=args.debug,
+            )
+            print(f"{setup_filename} downloaded")
+            print(f'simulation {simulation["id"]} setup done')
 
-                # TODO get server data - aka np
-                server_data = utils.get_object(
+        if args.command == "run":
+            # find simu_id
+            simu = utils.get_object(
+                web,
+                headers=headers,
+                id=args.simu_id,
+                mtype="simulation",
+                debug=args.debug,
+            )
+            if simu is None:
+                raise RuntimeError(
+                    f"run : cannot find {args.simu_id} simulation - please check simulations list"
+                )
+
+            # Run simu with ssh
+            ids = utils.get_list(web, headers=headers, mtype="server", debug=args.debug)
+            if args.compute_server in ids:
+                server_id = ids[args.compute_server]
+            else:
+                raise RuntimeError(
+                    f"{args.server} : cannot found {args.name} in server objects"
+                )
+
+            # TODO get server data - aka np
+            server_data = utils.get_object(
+                web,
+                headers=headers,
+                mtype="server",
+                id=server_id,
+                debug=args.debug,
+            )
+
+            print("Starting simulation...")
+            r = requests.post(
+                f"{web}/api/simulations/{args.simu_id}/run",
+                data={"server_id": server_id},
+                headers=headers,
+            )
+            while True:
+                simulation = utils.get_object(
                     web,
                     headers=headers,
-                    mtype="server",
-                    id=server_id,
+                    mtype="simulation",
+                    id=simu_id,
                     debug=args.debug,
                 )
+                if simulation["status"] in ["failed", "done"]:
+                    break
+                sleep(10)
+            print(f'Simulation done: status={simulation["status"]}')
 
-                print("Starting simulation...")
-                r = requests.post(
-                    f"{web}/api/simulations/{simu_id}/run",
-                    data={"server_id": server_id},
-                    headers=headers,
-                )
-                while True:
-                    simulation = utils.get_object(
-                        web,
-                        headers=headers,
-                        mtype="simulation",
-                        id=simu_id,
-                        debug=args.debug,
-                    )
-                    if simulation["status"] in ["failed", "done"]:
-                        break
-                    sleep(10)
-                print(f"Simulation done: status={simulation['status']}")
+            if simulation["status"] == "failed":
+                sys.exit(1)
 
-                if simulation["status"] == "failed":
-                    sys.exit(1)
+            print(f"simulation={simulation}")
+            simu_arch_id = simulation["simulation_output_attachment"]["id"]
+            simu_filename = utils.download(
+                web,
+                headers=headers,
+                attach=setup_arch_id,
+                wd=args.wd,
+                debug=args.debug,
+            )
+            print(f"{simu_filename} downloaded")
+            print(f'simulation {simulation["id"]} done')
 
         if args.command == "compute":
             if args.flow_params:
