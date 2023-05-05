@@ -70,33 +70,60 @@ class TestList:
 
 
 class TestCrud:
-    def test_create(self):
-        from python_magnetapi.material import create
+    # TODO add check and update entries to ocreate for test automation
+    # shall get values from associated file
+    # how to enable several files per main key??
+
+    def create(self, mtype: str):
+        from python_magnetapi.material import create as mat_create
+        from python_magnetapi.site import create as site_create
+        from python_magnetapi.magnet import create as magnet_create
+        from python_magnetapi.part import create as part_create
+        from python_magnetapi.record import create as record_create
+
+        ocreate = {
+            "material": {"cmd": mat_create, "file": "ma2202802.dat"},
+            "site": {"cmd": site_create, "file": ""},
+            "magnet": {"cmd": magnet_create, "file": ""},
+            "part": {"cmd": part_create, "file": ""},
+            "record": {"cmd": record_create, "file": ""},
+        }
 
         print(f"cwd={os.getcwd()}")
-        with open("tests/ma2202802.dat", "r") as f:
+        filename = f"tests/{ocreate[mtype]['file']}"
+        with open(filename, "r") as f:
             data = json.loads(f.read())
-        id = create(web, headers=headers, data=data, verbose=False, debug=False)
-        assert not id is None
+
+        id = ocreate[mtype]["cmd"](
+            web, headers=headers, data=data, verbose=False, debug=False
+        )
+
+        return id
+
+    def delete(self, mtype: str, name: str):
+        from python_magnetapi import utils
+
+        ids = utils.get_list(web, headers=headers, mtype=mtype, debug=False)
+        print(f"id={ids[name]}")
+
+        response = utils.del_object(
+            web,
+            headers=headers,
+            mtype=mtype,
+            id=ids[name],
+            verbose=False,
+            debug=False,
+        )
+
+        ids = utils.get_list(web, headers=headers, mtype=mtype, debug=False)
+        return name in ids
+
+    def test_create_material(self):
+        assert not self.create("material") is None
 
     def test_update(self):
         _ids = ["1"]
         assert len(_ids) != 0
 
-    def test_delete(self):
-        from python_magnetapi import utils
-
-        ids = utils.get_list(web, headers=headers, mtype="material", debug=False)
-        print(f"id={ids['testmat3']}")
-        assert "testmat3" in ids
-
-        response = utils.del_object(
-            web,
-            headers=headers,
-            mtype="material",
-            id=ids["testmat3"],
-            verbose=False,
-            debug=False,
-        )
-        print(f"response={response}")
-        assert not response is None
+    def test_delete_material(self):
+        assert self.delete("material", "testmat3") == False
