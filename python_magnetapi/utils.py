@@ -511,8 +511,8 @@ def download(
             r"filename=\"(.+)\"", r.headers["content-disposition"], re.MULTILINE
         )
     )[0].group(1)
-    with open(filename, "w+") as file:
-        file.write(r.text)
+    with open(filename, "wb") as file:
+        file.write(r.content)
 
     os.chdir(cwd)
     return filename
