@@ -1,0 +1,23 @@
+{
+    "name": "Htest_H1",
+    "description": "",
+    "status": "in_study",
+    "type": "helix",
+    "design_office_reference": "HL-34-021-B",
+    "material": {
+        "name": "MAtest_H1",
+        "description": "test mat",
+        "t_ref": 293,
+        "volumic_mass": 9000.0,
+        "specific_heat": 385,
+        "alpha": 0.0036,
+        "electrical_conductivity": 51600000.0,
+        "thermal_conductivity": 380,
+        "magnet_permeability": 1,
+        "young": 117000000000.0,
+        "poisson": 0.33,
+        "expansion_coefficient": 1.8e-05,
+        "rpe": 505000000.0,
+        "nuance": "CuAg2,75"
+    }
+}
