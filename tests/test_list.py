@@ -74,6 +74,9 @@ class TestCrud:
     # shall get values from associated file
     # how to enable several files per main key??
 
+    # add params to select either
+    # file: single json datastruct
+    # xxx: hierachical json datastruct
     def create(self, mtype: str):
         from python_magnetapi.material import create as mat_create
         from python_magnetapi.site import create as site_create
@@ -84,9 +87,9 @@ class TestCrud:
         ocreate = {
             "material": {"cmd": mat_create, "file": "ma2202802.dat"},
             "site": {"cmd": site_create, "file": ""},
-            "magnet": {"cmd": magnet_create, "file": ""},
-            "part": {"cmd": part_create, "file": ""},
-            "record": {"cmd": record_create, "file": ""},
+            "magnet": {"cmd": magnet_create, "file": "magnet.dat"},
+            "part": {"cmd": magnet_create, "file": "part.dat"},
+            "record": {"cmd": record_create, "file": "record.dat"},
         }
 
         print(f"cwd={os.getcwd()}")
@@ -121,9 +124,28 @@ class TestCrud:
     def test_create_material(self):
         assert not self.create("material") is None
 
+    def test_create_part(self):
+        assert not self.create("part") is None
+
+    # add create magnet
+    # add create site
+    # add create record
+    
+    def test_delete_part(self):
+        assert self.delete("part", "testmat3") == False
+        
+    """     
     def test_update(self):
         _ids = ["1"]
-        assert len(_ids) != 0
+        assert len(_ids) != 0 
+    """
 
+    # delete record
+    # delete site
+    # delete magnet
+    # delete part
     def test_delete_material(self):
         assert self.delete("material", "testmat3") == False
+
+
+    
