@@ -237,10 +237,9 @@ def add_data_to_object(
     api_server: str,
     headers: dict,
     id: int,
+    data: dict,
     mtype: str = "magnet",
     dtype: str = "part",
-    data: dict = {},
-    files: dict() = {},
     verbose: bool = False,
     debug: bool = False,
 ):
@@ -252,12 +251,15 @@ def add_data_to_object(
             f"add_data_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, data={data}"
         )
 
+    print(f"add_data_to_object: {api_server}/api/{mtype}s/{id}/{dtype}s")
     r = requests.post(
         f"{api_server}/api/{mtype}s/{id}/{dtype}s",
-        json=data,
+        data=data,
         headers=headers,
     )
+    print(f"add_data_to_object: r={r}")
     response = r.json()
+    print(f"add_data_to_object: response={response}")
     if r.status_code != 200:
         print(response["detail"])
         return None

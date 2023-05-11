@@ -51,11 +51,15 @@ def create(
         # loop over magnets
         site_id = response["id"]
 
-        for magnet in data["magnets"]:
-            _ids = utils.getl_ist(
+        for magnet in magnets:
+            _ids = utils.get_list(
                 api_server, headers=headers, mtype="magnet", debug=debug
             )
+
+            _id = None
+            mname = None
             if isinstance(magnet, str):
+                mname = magnet
                 if magnet in _ids:
                     _id = _ids[magnet]
                     utils.add_data_to_object(
@@ -83,7 +87,14 @@ def create(
                         api_server, headers, magnet, verbose=verbose, debug=debug
                     )
 
-                # call to api/sites/{site_id}/magnets with magnetid = _id
+            else:
+                raise RuntimeError(
+                    f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
+                )
+
+            # call to api/sites/{site_id}/magnets with magnetid = _id
+            if not _id is None:
+                print(f"create:site attach magnet id={_id} name={mname}")
                 utils.add_data_to_object(
                     api_server,
                     headers,
@@ -93,10 +104,6 @@ def create(
                     data={"magnet_id": _id},
                     verbose=verbose,
                     debug=debug,
-                )
-            else:
-                raise RuntimeError(
-                    f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
                 )
 
         for record in records:
@@ -108,8 +115,8 @@ def create(
                 api_server, headers, record, verbose=verbose, debug=debug
             )
 
-        # add site description
-        # add status
+        # update site description
+        # update status
         # putinoperation: patch /api/sites/{id}/put_in_operation
         # shutdown: patch "/api/sites/{id}/shutdown
         return response["id"]

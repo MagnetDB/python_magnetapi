@@ -91,9 +91,9 @@ def create(
                     api_server,
                     headers,
                     _id,
+                    data={"part_id": part_id},
                     mtype="magnet",
                     dtype="part",
-                    data={"part_id": part_id},
                     verbose=verbose,
                     debug=debug,
                 )
@@ -102,6 +102,7 @@ def create(
                     f"part {data['name']} failed to be created MagnetPart: no magnet {magnet}"
                 )
 
+        # TODO better to have a dict for this part
         # add geometry: see add_geometry_to_part.py
         if geometries:
             geomfile = f"{geometries[0]}.yaml"

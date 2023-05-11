@@ -5,6 +5,7 @@ create magnet
 import requests
 from . import utils
 from . import part
+from . import site
 
 
 def create(
@@ -45,12 +46,14 @@ def create(
             del data["status"]
 
         # data: extract only necessary data for creation
+        print(f"create:magnet data={data}")
         response = utils.post_data(api_server, headers, data, "magnet", verbose, debug)
+        print(f"create:magnet response={response}")
         if response is None:
-            print(f"magnet {data['name']} failed to be created")
+            print(f"create:magnet {data['name']} failed to be created")
             return None
         else:
-            print(f"magnet {data['name']} created with id={response['id']}")
+            print(f"create:magnet {data['name']} created with id={response['id']}")
 
         # loop over parts
         magnet_id = response["id"]
@@ -65,19 +68,22 @@ def create(
                     pdata = {"part_id": _ids[part]}
                     # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
                     # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
+                    print(
+                        f"create:magnet  {data['name']} attach part id={_id} name={part}"
+                    )
                     utils.add_data_to_object(
                         api_server,
                         headers,
                         magnet_id,
+                        data=pdata,
                         mtype="magnet",
                         dtype="part",
-                        data=pdata,
                         verbose=verbose,
                         debug=debug,
                     )
                 else:
                     print(
-                        f"magnet {data['name']} failed to add part {part} - no such part"
+                        f"create:magnet {data['name']} failed to add part {part} - no such part"
                     )
 
             elif isinstance(part, dict):
@@ -90,42 +96,54 @@ def create(
                         api_server, headers, part, verbose=verbose, debug=debug
                     )
 
+                print(
+                    f"create:magnet {data['name']}  attach part id={_id} name={pname}"
+                )
                 utils.add_data_to_object(
                     api_server,
                     headers,
                     magnet_id,
+                    data={"part_id": _id},
                     mtype="magnet",
                     dtype="part",
-                    data={"part_id": _id},
                     verbose=verbose,
                     debug=debug,
                 )
             else:
                 raise RuntimeError(
-                    f"magnet/create: unexpected type for part (type={type(part)}) - should be str or dict"
+                    f"create:magnet  {data['name']} unexpected type for part (type={type(part)}) - should be str or dict"
                 )
 
         for site in sites:
             _ids = utils.get_list(
                 api_server, headers=headers, mtype="site", debug=debug
             )
-            if site in _ids:
-                site_id = _ids[site]
-                # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
-                # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
-                utils.add_data_to_object(
-                    api_server,
-                    headers,
-                    site_id,
-                    mtype="site",
-                    dtype="magnet",
-                    data={"magnet_id": magnet_id},
-                    verbose=verbose,
-                    debug=debug,
-                )
+            if isinstance(site, str):
+                if site in _ids:
+                    site_id = _ids[site]
+
+                    print(
+                        f"create:magnet {data['name']}  attach site id={_id} name={site}"
+                    )
+                    utils.add_data_to_object(
+                        api_server,
+                        headers,
+                        site_id,
+                        data={"magnet_id": magnet_id},
+                        mtype="site",
+                        dtype="magnet",
+                        verbose=verbose,
+                        debug=debug,
+                    )
+
+                else:
+                    print(
+                        f"create:magnet {data['name']} failed to attach to site {site} - no such site"
+                    )
+
             else:
-                print(
-                    f"magnet {data['name']} failed to attach to site {site} - no such site"
+                raise RuntimeError(
+                    f"magnet {data['name']} failed to attach to site {site} - unexpected type ({type(site)}"
                 )
 
         # add magnet geometry

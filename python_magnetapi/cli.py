@@ -78,6 +78,21 @@ def main():
     )
 
     # create subcommand
+    parser_create.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "material",
+            "part",
+            "magnet",
+            "site",
+            "record",
+            "server",
+            "simulation",
+        ],
+        default="magnet",
+    )
     # parser_create.add_argument("--data", help="specify data as dict", type=json.loads)
     # parser_create.add_argument("--file", help="specify data as file", type=str)
     command_group = parser_create.add_mutually_exclusive_group()
