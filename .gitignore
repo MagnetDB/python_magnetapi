@@ -86,3 +86,8 @@ certs
 *.orig
 .pc
 *.png
+
+tmp
+*.tar.gz
+M*.json
+H*.json
