@@ -35,7 +35,7 @@ r = requests.post(
           'type': '',
           'material_id': '' ,
           'desing_office_reference': ''
-          }
+          },
     headers={'Authorization': os.getenv('MAGNETDB_API_KEY')}
 )
 
