@@ -33,7 +33,7 @@ def main():
     parser_create = subparsers.add_parser("create", help="create help")
     parser_delete = subparsers.add_parser("delete", help="create help")
 
-    parser_setup = subparsers.add_parser("setup", help="run help")
+    parser_setup = subparsers.add_parser("setup", help="setup help")
     parser_run = subparsers.add_parser("run", help="run help")
     parser_compute = subparsers.add_parser("compute", help="compute help")
     parser_post = subparsers.add_parser("process", help="process help")
@@ -124,7 +124,7 @@ def main():
         "--name", help="specify an object name", type=str, default="None"
     )
 
-    # run subcommand
+    # setup subcommand
     parser_setup.add_argument(
         "--mtype",
         help="select object type",
@@ -182,11 +182,21 @@ def main():
 
     # run subcommand
     parser_run.add_argument(
+        "--mtype",
+        help="select object type",
+        type=str,
+        choices=[
+            "magnet",
+            "site",
+        ],
+        default="magnet",
+    )
+    parser_run.add_argument(
         "--simu_id", help="select simulation id", type=int, default=-1
     )
     parser_run.add_argument(
         "--wd",
-        help="select directory to store setup/sumalation results",
+        help="select directory to store setup/simulation results",
         type=str,
         default=".",
     )
@@ -501,11 +511,11 @@ def main():
                 sys.exit(1)
 
             print(f"simulation={simulation}")
-            simu_arch_id = simulation["simulation_output_attachment"]["id"]
+            simu_arch_id = simulation["output_attachment"]["id"]
             simu_filename = utils.download(
                 web,
                 headers=headers,
-                attach=setup_arch_id,
+                attach=simu_arch_id,
                 wd=args.wd,
                 debug=args.debug,
             )
