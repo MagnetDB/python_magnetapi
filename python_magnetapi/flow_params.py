@@ -152,18 +152,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 for file in dropped_files:
                     files.drop(file)
 
-                # TODO update interface with name=f'{sname}_{mname}'
-                plot_files(
-                    f"{sname}-{mname}",
-                    files,
-                    key1=Ikey,
-                    key2=fit_data[housing]["Rpm"],
-                    show=debug,
-                    debug=debug,
-                    wd=cwd,
-                )
-                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Rpm']}")
-
+                
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Rpm"]], debug=debug
                 )
@@ -181,17 +170,83 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 result = df.query(f"{Ikey} <= {Imax}")  # , inplace=True)
                 if result is not None:
                     print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
-
+                    print(f"result max: {result[Ikey].max()}")
+                    
                 x_data = result[f"{Ikey}"].to_numpy()
                 y_data = result[fit_data[housing]["Rpm"]].to_numpy()
                 params, params_covariance = optimize.curve_fit(
                     vpump_func, x_data, y_data
                 )
+                
                 print(f"result params: {params}")
                 print(f"result covariance: {params_covariance}")
                 print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
-                flow_params["Vp0"]["value"] = params[0]
-                flow_params["Vpmax"]["value"] = params[1]
+                flow_params["Vp0"]["value"] = params[1]
+                flow_params["Vpmax"]["value"] = params[0]
+                vp0=flow_params["Vp0"]["value"]
+                vpmax=flow_params["Vpmax"]["value"]
+                    
+                # TODO update interface with name=f'{sname}_{mname}'
+                plot_files(
+                    f"{sname}-{mname}",
+                    files,
+                    key1=Ikey,
+                    key2=fit_data[housing]["Rpm"],
+                    fit=(x_data,[vpump_func(x,vpmax,vp0) for x in x_data]),
+                    show=debug,
+                    debug=debug,
+                    wd=cwd,
+                )
+                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Rpm']}")
+
+
+               
+                df = concat_files(
+                    files, keys=[Ikey, fit_data[housing]["Flow"]], debug=debug
+                )
+                pairs = [f"{Ikey}-{fit_data[housing]['Flow']}"]
+                print(f"concat_files: files={files}")
+                print(f"concat_files: keys={df.columns.values.tolist()}")
+
+                
+                def flow_func(x, F0: float, Fmax: float):
+                    return F0 + Fmax * vpump_func(x,vpmax,vp0) / (vpmax+vp0)
+
+
+                df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                df.dropna(inplace=True)
+
+                # # drop values for Icoil1 > Imax
+                result = df.query(f"{Ikey} <= {Imax}")  # , inplace=True)
+                if result is not None:
+                    print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
+
+
+                y_data = result[fit_data[housing]["Flow"]].to_numpy()
+                params, params_covariance = optimize.curve_fit(
+                    flow_func, x_data, y_data
+                )
+                print(f"result params: {params}")
+                print(f"result covariance: {params_covariance}")
+                print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
+                flow_params["F0"]["value"] = params[0]
+                flow_params["Fmax"]["value"] = params[1]
+                F0=flow_params["F0"]["value"] 
+                Fmax=flow_params["Fmax"]["value"] 
+
+                 # correlation flow
+                plot_files(
+                    f"{sname}-{mname}",
+                    files,
+                    key1=Ikey,
+                    key2=fit_data[housing]["Flow"],
+                    fit=(x_data,flow_func(x,F0,Fmax) for x in x_data),
+                    show=debug,
+                    debug=debug,
+                    wd=cwd,
+                )
+                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Flow']}")
+
 
                 # save flow_params
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
