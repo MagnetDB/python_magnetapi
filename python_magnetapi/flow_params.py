@@ -240,7 +240,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     files,
                     key1=Ikey,
                     key2=fit_data[housing]["Flow"],
-                    fit=(x_data,flow_func(x,F0,Fmax) for x in x_data),
+                    fit=(x_data,[flow_func(x,F0,Fmax) for x in x_data]),
                     show=debug,
                     debug=debug,
                     wd=cwd,
