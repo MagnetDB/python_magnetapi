@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--server", help="specify server", type=str, default=api_server)
     parser.add_argument("--port", help="specify port", type=int, default=8000)
     parser.add_argument("--debug", help="activate debug mode", action="store_true")
+    parser.add_argument("--https", help="activate https mode", action="store_true")
 
     subparsers = parser.add_subparsers(
         title="commands", dest="command", help="sub-command help"
@@ -237,9 +238,12 @@ def main():
     payload = {}
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
     web = f"http://{args.server}:{args.port}"
+    if args.https:
+        web = f"https://{args.server}"
 
     with requests.Session() as s:
-        r = s.get(f"{web}/api/{otype}s", headers=headers)
+        r = s.get(f"{web}/api/{otype}s", headers=headers, verify=True)
+        print(f"r={r}")
         response = r.json()
         # print(f"response={response}")
         if args.debug:
