@@ -62,8 +62,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
     # Iddct are values of measured current
     # Icoil  are actually referenced values required by the user
     fit_data = {
-        "M9": {"Rpm": "Rpm1", "Flow": "Flow1", "Pin": "HP1", "Pin": "HP1", "Pout": "BP", "rlist": []},
-        "M10": {"Rpm": "Rpm2", "Flow": "Flow2", "Pin": "HP2", "Pin": "HP1", "Pout": "BP", "rlist": []},
+        "M9": {"Rpm": "Rpm1", "Flow": "Flow1", "Pin": "HP1", "Pout": "BP", "rlist": []},
+        "M10": {"Rpm": "Rpm2", "Flow": "Flow2", "Pin": "HP2", "Pout": "BP", "rlist": []},
     }
     if otype == "bitter":
         fit_data = {
@@ -250,13 +250,13 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Pin"]], debug=debug
                 )
-                pairs = [f"{Ikey}-{fit_data[housing]['Pint']}"]
+                pairs = [f"{Ikey}-{fit_data[housing]['Pin']}"]
                 print(f"concat_files: files={files}")
                 print(f"concat_files: keys={df.columns.values.tolist()}")
 
                 
-                def pressure_func(x, F0: float, Fmax: float):
-                    return F0 + Fmax * (vpump_func(x,vpmax,vp0) / (vpmax+vp0))**2
+                def pressure_func(x, P0: float, Pmax: float):
+                    return P0 + Pmax * (vpump_func(x,vpmax,vp0) / (vpmax+vp0))**2
 
 
                 df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -270,15 +270,15 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 y_data = result[fit_data[housing]["Pin"]].to_numpy()
                 params, params_covariance = optimize.curve_fit(
-                    flow_func, x_data, y_data
+                    pressure_func, x_data, y_data
                 )
                 print(f"result params: {params}")
                 print(f"result covariance: {params_covariance}")
                 print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
                 flow_params["Pmin"]["value"] = params[0]
                 flow_params["Pmax"]["value"] = params[1]
-                F0=flow_params["Pmin"]["value"] 
-                Fmax=flow_params["Pmax"]["value"] 
+                P0=flow_params["Pmin"]["value"] 
+                Pmax=flow_params["Pmax"]["value"] 
 
                 # correlation Pin
                 plot_files(
@@ -286,7 +286,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     files,
                     key1=Ikey,
                     key2=fit_data[housing]["Pin"],
-                    fit=(x_data,pressure_func(x,F0,Fmax) for x in x_data),
+                    fit=(x_data,[pressure_func(x,P0,Pmax) for x in x_data]),
                     show=debug,
                     debug=debug,
                     wd=cwd,
