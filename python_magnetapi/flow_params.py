@@ -370,7 +370,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Pout"]], debug=debug
                 )
-                mean_Pout = df[fit_data[housing]["Rpm"]].mean()
+                mean_Pout = df[fit_data[housing]["Pout"]].mean()
 
                 # correlation Pout
                 plot_files(
