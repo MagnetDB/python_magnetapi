@@ -243,11 +243,10 @@ def main():
 
     with requests.Session() as s:
         r = s.get(f"{web}/api/{otype}s", headers=headers, verify=True)
-        print(f"r={r}")
         response = r.json()
-        # print(f"response={response}")
         if args.debug:
             print(f"response={response}")
+
         if "detail" in response and response["detail"] == "Forbidden.":
             raise RuntimeError(
                 f"{args.server} : wrong credentials - check MAGNETDB_API_KEY"
