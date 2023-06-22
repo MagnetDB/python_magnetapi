@@ -19,7 +19,7 @@ from . import utils
 from python_magnetrun.utils.files import concat_files
 from python_magnetrun.utils.plots import plot_files
 from python_magnetrun.magnetdata import MagnetData
-from python_magnetrun.processing import nplateaus
+from python_magnetrun.processing.stats import nplateaus
 
 
 def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
@@ -39,7 +39,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
         "Fmax": {"value": 61.71612272405876, "unit": "l/s"},
         "Pmax": {"value": 22, "unit": "bar"},
         "Pmin": {"value": 4, "unit": "bar"},
-        "Imax": {"value": 40000, "unit": "A"},
+        "Imax": {"value": 28000, "unit": "A"},
     }
 
     Imax = flow_params["Imax"]["value"]  # 28000
@@ -52,7 +52,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
         id=oid,
         debug=debug,
     )
-    print(f"magnet data: {json.dumps(odata, indent=2, default=str)}")
+    if debug:
+        print(f"magnet data: {json.dumps(odata, indent=2, default=str)}")
     mname = odata["name"]
     mpart = odata["magnet_parts"][0]
     otype = mpart["part"]["type"]
@@ -95,10 +96,10 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
     sites = utils.get_history(
         api_server, headers, oid, mtype="magnet", otype="site", debug=debug
     )
-    for i, site in enumerate(sites):
-        print(f"site[{i}/{len(sites)}]: {json.dumps(site, indent=2, default=str)}")
     if debug:
         print(f"sites: {json.dumps(sites, indent=2, default=str)}")
+        for i, site in enumerate(sites):
+            print(f"site[{i}/{len(sites)}]: {json.dumps(site, indent=2, default=str)}")
 
     with tempfile.TemporaryDirectory() as tempdir:
         os.chdir(tempdir)
@@ -121,7 +122,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             files = []
             total = 0
             nrecords = len(records)
-            print(f"site[{site['site']['name']}]: nrecords={nrecords}")
+            if debug:
+                print(f"site[{site['site']['name']}]: nrecords={nrecords}")
 
             housing = None
             for i in track(
@@ -150,7 +152,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 # get first Icoil column (not necessary Icoil1)
                 keys = df.columns.values.tolist()
-                print(f"{files[0]}: keys={keys}")
+                if debug:
+                    print(f"{files[0]}: keys={keys}")
 
                 # key first or latest header that match Icoil\d+ depending on mtype
                 Ikeys = []
@@ -164,6 +167,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 print(f"Ikey={Ikey}")
 
                 dropped_files = []
+
+                # Imax detection
                 xField = (Ikey, "A")
                 yField = (fit_data[housing]["Rpm"], "rpm")
                 threshold = 2.0e-2
@@ -171,22 +176,49 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 for file in files:
                     new_Imax = Imax
-                    df = pd.read_csv(file, sep="\s+", engine="python", skiprows=1)
+                    df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
                     if not Ikey in df.columns.values.tolist():
                         print(f"{Ikey}: no such key in {file} - ignore {file}")
                         dropped_files.append(file)
 
+                    _Rpmmax = df[fit_data[housing]["Rpm"]].max()
+                    threshold = _Rpmmax * (1 - 0.1 / 100.0)
+                    result = df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
+                    if not result.empty:
+                        _Imin = result[Ikey].min()
+                        _Imean = result[Ikey].mean()
+                        _Imax = result[Ikey].max()
+                        print(
+                            f"Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: [{_Imin}, {_Imax}], mean={_Imean}"
+                        )
+
+                        import matplotlib.pyplot as plt
+
+                        result.plot.scatter(
+                            x=Ikey, y=fit_data[housing]["Rpm"], grid=True
+                        )
+                        lname = file.replace("_", "-")
+                        lname = lname.replace(".txt", "")
+                        lname = lname.split("/")
+                        plt.title(lname[-1])
+                        plt.show()
+                        plt.close()
+
+                    """
                     Data = MagnetData.fromtxt(file)
                     plateaus = nplateaus(
-                        Data, xField, yField, threshold, num_points_threshold
+                        Data, xField, yField, threshold, num_points_threshold, show=True
                     )
                     if plateaus:
                         new_Imax = {min(plateaus[0]["start"], Imax)}
                         print(f"new_Imax = {new_Imax}")
+                    """
 
+                """
                 if new_Imax < Imax:
                     flow_params["Imax"]["value"] = new_Imax
                     Imax = new_Imax
+                """
 
                 for file in dropped_files:
                     files.drop(file)
