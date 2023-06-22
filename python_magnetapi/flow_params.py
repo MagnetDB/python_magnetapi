@@ -39,6 +39,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
         "Fmax": {"value": 61.71612272405876, "unit": "l/s"},
         "Pmax": {"value": 22, "unit": "bar"},
         "Pmin": {"value": 4, "unit": "bar"},
+        "Pout": {"value": 4, "unit": "bar"},
         "Imax": {"value": 28000, "unit": "A"},
     }
 
@@ -145,7 +146,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
             if files:
                 # get keys to be extracted
-                df = pd.read_csv(files[0], sep="\s+", engine="python", skiprows=1)
+                df = pd.read_csv(files[0], sep=r"\s+", engine="python", skiprows=1)
                 # remove columns with zero
                 df = df.loc[:, (df != 0.0).any(axis=0)]
                 Ikey = "tttt"
@@ -174,8 +175,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 threshold = 2.0e-2
                 num_points_threshold = 600
 
+                new_Imax = []
                 for file in files:
-                    new_Imax = Imax
                     df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
                     if not Ikey in df.columns.values.tolist():
                         print(f"{Ikey}: no such key in {file} - ignore {file}")
@@ -183,13 +184,14 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                     _Rpmmax = df[fit_data[housing]["Rpm"]].max()
                     threshold = _Rpmmax * (1 - 0.1 / 100.0)
-                    result = df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
+                    result = df.query(
+                        f'{fit_data[housing]["Rpm"]} >= {threshold} & Field > 0.1'
+                    )
                     if not result.empty:
-                        _Imin = result[Ikey].min()
-                        _Imean = result[Ikey].mean()
-                        _Imax = result[Ikey].max()
+                        """
+                        _Istats = result[Ikey].describe(include="all")
                         print(
-                            f"Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: [{_Imin}, {_Imax}], mean={_Imean}"
+                            f"Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}"
                         )
 
                         import matplotlib.pyplot as plt
@@ -203,6 +205,10 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         plt.title(lname[-1])
                         plt.show()
                         plt.close()
+                        """
+
+                        if result[Ikey].std() >= 10:
+                            new_Imax.append(result[Ikey].min())
 
                     """
                     Data = MagnetData.fromtxt(file)
@@ -214,11 +220,12 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         print(f"new_Imax = {new_Imax}")
                     """
 
-                """
-                if new_Imax < Imax:
-                    flow_params["Imax"]["value"] = new_Imax
-                    Imax = new_Imax
-                """
+                if new_Imax:
+                    new_Imax_mean = sum(new_Imax) / len(new_Imax)
+                    if Imax != new_Imax_mean:
+                        print(f"new_Imax = {new_Imax_mean}")
+                        flow_params["Imax"]["value"] = new_Imax_mean
+                        Imax = new_Imax_mean
 
                 for file in dropped_files:
                     files.drop(file)
@@ -226,9 +233,9 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Rpm"]], debug=debug
                 )
-                pairs = [f"{Ikey}-{fit_data[housing]['Rpm']}"]
-                print(f"concat_files: files={files}")
-                print(f"concat_files: keys={df.columns.values.tolist()}")
+                # pairs = [f"{Ikey}-{fit_data[housing]['Rpm']}"]
+                # print(f"concat_files: files={files}")
+                # print(f"concat_files: keys={df.columns.values.tolist()}")
 
                 def vpump_func(x, a: float, b: float):
                     return a * (x / Imax) ** 2 + b
@@ -238,7 +245,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 # # drop values for Icoil1 > Imax
                 result = df.query(f"{Ikey} <= {Imax}")  # , inplace=True)
-                if result is not None:
+                if result is not None and debug:
                     print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
                     print(f"result max: {result[Ikey].max()}")
 
@@ -248,6 +255,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     vpump_func, x_data, y_data
                 )
 
+                print("Rpm Fit:")
                 print(f"result params: {params}")
                 print(f"result covariance: {params_covariance}")
                 print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
@@ -267,15 +275,15 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     debug=debug,
                     wd=cwd,
                 )
-                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Rpm']}")
+                # print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Rpm']}")
 
                 # Fit for Flow
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Flow"]], debug=debug
                 )
-                pairs = [f"{Ikey}-{fit_data[housing]['Flow']}"]
-                print(f"concat_files: files={files}")
-                print(f"concat_files: keys={df.columns.values.tolist()}")
+                # pairs = [f"{Ikey}-{fit_data[housing]['Flow']}"]
+                # print(f"concat_files: files={files}")
+                # print(f"concat_files: keys={df.columns.values.tolist()}")
 
                 def flow_func(x, F0: float, Fmax: float):
                     return F0 + Fmax * vpump_func(x, vpmax, vp0) / (vpmax + vp0)
@@ -285,13 +293,14 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 # # drop values for Icoil1 > Imax
                 result = df.query(f"{Ikey} <= {Imax}")  # , inplace=True)
-                if result is not None:
+                if result is not None and debug:
                     print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
 
                 y_data = result[fit_data[housing]["Flow"]].to_numpy()
                 params, params_covariance = optimize.curve_fit(
                     flow_func, x_data, y_data
                 )
+                print("Flow Fit:")
                 print(f"result params: {params}")
                 print(f"result covariance: {params_covariance}")
                 print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
@@ -311,15 +320,15 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     debug=debug,
                     wd=cwd,
                 )
-                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Flow']}")
+                # print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Flow']}")
 
                 # Fit for Pressure
                 df = concat_files(
                     files, keys=[Ikey, fit_data[housing]["Pin"]], debug=debug
                 )
-                pairs = [f"{Ikey}-{fit_data[housing]['Pin']}"]
-                print(f"concat_files: files={files}")
-                print(f"concat_files: keys={df.columns.values.tolist()}")
+                # pairs = [f"{Ikey}-{fit_data[housing]['Pin']}"]
+                # print(f"concat_files: files={files}")
+                # print(f"concat_files: keys={df.columns.values.tolist()}")
 
                 def pressure_func(x, P0: float, Pmax: float):
                     return P0 + Pmax * (vpump_func(x, vpmax, vp0) / (vpmax + vp0)) ** 2
@@ -329,13 +338,14 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
                 # # drop values for Icoil1 > Imax
                 result = df.query(f"{Ikey} <= {Imax}")  # , inplace=True)
-                if result is not None:
+                if result is not None and debug:
                     print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
 
                 y_data = result[fit_data[housing]["Pin"]].to_numpy()
                 params, params_covariance = optimize.curve_fit(
                     pressure_func, x_data, y_data
                 )
+                print("Pressure Fit:")
                 print(f"result params: {params}")
                 print(f"result covariance: {params_covariance}")
                 print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
@@ -355,20 +365,26 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     debug=debug,
                     wd=cwd,
                 )
-                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Pin']}")
+                # print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Pin']}")
 
-                # correlation Pin
+                df = concat_files(
+                    files, keys=[Ikey, fit_data[housing]["Pout"]], debug=debug
+                )
+                mean_Pout = df[fit_data[housing]["Rpm"]].mean()
+
+                # correlation Pout
                 plot_files(
                     f"{sname}-{mname}",
                     files,
                     key1=Ikey,
                     key2=fit_data[housing]["Pout"],
-                    fit=None,
+                    fit=(x_data, [mean_Pout for x in x_data]),
                     show=debug,
                     debug=debug,
                     wd=cwd,
                 )
-                print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Pout']}")
+                # print(f"plot_files: key1={Ikey}, key2={fit_data[housing]['Pout']}")
+                flow_params["Pout"]["value"] = mean_Pout
 
                 # save flow_params
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
