@@ -74,9 +74,9 @@ def fit(
     params, params_covariance = optimize.curve_fit(fit_function, x_data, y_data)
 
     print(f"{Ostring} Fit:")
-    print(f"result params: {params}")
-    print(f"result covariance: {params_covariance}")
-    print(f"result stderr: {np.sqrt(np.diag(params_covariance))}")
+    print(f"\tparams: {params}")
+    # print(f"\tcovariance: {params_covariance}")
+    print(f"\tstderr: {np.sqrt(np.diag(params_covariance))}")
 
     # TODO update interface with name=f'{sname}_{mname}'
     plot_files(
@@ -90,6 +90,7 @@ def fit(
         wd=wd,
     )
 
+    del result
     del df
     return params
 
@@ -238,14 +239,11 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 if otype == "bitter":
                     Ikey = Ikeys[-1]
                 print(f"Ikey={Ikey}")
+                del df
 
                 dropped_files = []
 
                 # Imax detection
-                xField = (Ikey, "A")
-                yField = (fit_data[housing]["Rpm"], "rpm")
-                threshold = 2.0e-2
-                num_points_threshold = 600
 
                 new_Imax = []
                 for file in files:
@@ -253,39 +251,41 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     if not Ikey in _df.columns.values.tolist():
                         print(f"{Ikey}: no such key in {file} - ignore {file}")
                         dropped_files.append(file)
+                    else:
+                        _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
+                        threshold = _Rpmmax * (1 - 0.1 / 100.0)
+                        result = _df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
+                        if not result.empty:
+                            if result[Ikey].std() >= 10:
+                                if debug:
+                                    _Istats = result[Ikey].describe(include="all")
+                                    print(
+                                        f'Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}, Field: {result["Field"].max()}'
+                                    )
+                                    """ """
+                                    import matplotlib.pyplot as plt
 
-                    _Rpmmax = df[fit_data[housing]["Rpm"]].max()
-                    threshold = _Rpmmax * (1 - 0.1 / 100.0)
-                    result = _df.query(
-                        f'{fit_data[housing]["Rpm"]} >= {threshold} & Field > 0.1'
-                    )
-                    if not result.empty:
-                        """
-                        _Istats = result[Ikey].describe(include="all")
-                        print(
-                            f"Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}"
-                        )
+                                    result.plot.scatter(
+                                        x=Ikey, y=fit_data[housing]["Rpm"], grid=True
+                                    )
+                                    lname = file.replace("_", "-")
+                                    lname = lname.replace(".txt", "")
+                                    lname = lname.split("/")
+                                    plt.title(lname[-1])
+                                    plt.show()
+                                    plt.close()
+                                    """ """
 
-                        import matplotlib.pyplot as plt
+                                new_Imax.append(result[Ikey].min())
 
-                        result.plot.scatter(
-                            x=Ikey, y=fit_data[housing]["Rpm"], grid=True
-                        )
-                        lname = file.replace("_", "-")
-                        lname = lname.replace(".txt", "")
-                        lname = lname.split("/")
-                        plt.title(lname[-1])
-                        plt.show()
-                        plt.close()
-                        """
-
-                        if result[Ikey].std() >= 10:
-                            new_Imax.append(result[Ikey].min())
-
-                    del result
-                    del _df
+                        del result
+                        del _df
 
                     """
+                    # xField = (Ikey, "A")
+                    # yField = (fit_data[housing]["Rpm"], "rpm")
+                    # threshold = 2.0e-2
+                    # num_points_threshold = 600
                     Data = MagnetData.fromtxt(file)
                     plateaus = nplateaus(
                         Data, xField, yField, threshold, num_points_threshold, show=True
@@ -298,7 +298,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 if new_Imax:
                     new_Imax_mean = sum(new_Imax) / len(new_Imax)
                     if Imax != new_Imax_mean:
-                        print(f"new_Imax = {new_Imax_mean}")
+                        print(f"new_Imax = {new_Imax_mean} raw={new_Imax}")
                         flow_params["Imax"]["value"] = new_Imax_mean
                         Imax = new_Imax_mean
 
