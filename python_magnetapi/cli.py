@@ -170,7 +170,7 @@ def main():
         "--cooling",
         help="select a cooling mode",
         type=str,
-        choices=["mean", "meanH", "grad", "gradH"],
+        choices=["mean", "meanH", "grad", "gradH", "gradHZ"],
         default="meanH",
     )
     parser_setup.add_argument(
