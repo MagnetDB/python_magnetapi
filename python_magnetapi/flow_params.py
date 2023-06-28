@@ -212,6 +212,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             # download files
             files = []
             total = 0
+            ithreshold = 40 # TODO set appropriate value
             nrecords = len(records)
             if debug:
                 print(f"site[{site['site']['name']}]: nrecords={nrecords}")
@@ -230,7 +231,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 housing = filename.split("_")[0]
                 files.append(filename)
                 total += 1
-                if i >= 20:
+                if i >= min(ithreshold, nrecords):
                     break
             print(f"Processed {total} records.")
 
@@ -417,13 +418,13 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     f"{sname}-{mname}",
                     debug,
                 )
-                print(f'Pout(mean, std): {param}')
+                print(f'Pout(mean, std): {params}')
                 Pout = params[0]
                 flow_params["Pout"]["value"] = Pout
 
-                print(f'flow_params: {json.dumps(flow_params, indent=4)}')
                 
                 # save flow_params
+                print(f'flow_params: {json.dumps(flow_params, indent=4)}')
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
                 with open(filename, "w") as f:
                     f.write(json.dumps(flow_params, indent=4))
