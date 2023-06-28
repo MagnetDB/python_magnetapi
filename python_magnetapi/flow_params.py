@@ -10,6 +10,8 @@ import re
 import numpy as np
 from scipy import optimize
 
+import datetime
+
 import json
 import pandas as pd
 from rich.progress import track
@@ -28,6 +30,8 @@ def stats(
     Ostring: str,
     threshold: float,
     files: list,
+    wd: str,
+    filename: str,
     debug: bool = False,
 ):
     df = concat_files(files, keys=[Ikey, Okey], debug=debug)
@@ -40,8 +44,21 @@ def stats(
         print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
         print(f"result max: {result[Ikey].max()}")
 
-    stats = result.describe(include="all")
-    return stats
+    plot_files(
+        filename,
+        files,
+        key1=Ikey,
+        key2=Okey,
+        fit=None,
+        show=debug,
+        debug=debug,
+        wd=wd,
+    )
+
+    if debug:
+        stats = result[Okey].describe(include="all")
+        print(f'{Okey}: stats')
+    return (result[Okey].mean(), result[Okey].std()) 
 
 
 def fit(
@@ -90,8 +107,6 @@ def fit(
         wd=wd,
     )
 
-    del result
-    del df
     return params
 
 
@@ -139,6 +154,8 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
     # and Ih_ref, Ib_ref instead of of Iddcct1
     # Iddct are values of measured current
     # Icoil  are actually referenced values required by the user
+    # on M9: FlowH = Flow1, FlowB = Flow2
+    # on M8,M10: FlowH = Flow2, FlowB = Flow1
     fit_data = {
         "M9": {"Rpm": "Rpm1", "Flow": "Flow1", "Pin": "HP1", "Pout": "BP", "rlist": []},
         "M10": {
@@ -202,7 +219,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             housing = None
             for i in track(
                 range(nrecords),
-                description=f"Processing records for site {site['site']['name']}...",
+                description=f"Processing records for site {site['site']['name']} / {nrecords}",
             ):
                 f = records[i]
                 # print(f'f={f}')
@@ -213,16 +230,26 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 housing = filename.split("_")[0]
                 files.append(filename)
                 total += 1
-                if i >= 40:
+                if i >= 20:
                     break
             print(f"Processed {total} records.")
 
             if files:
                 # get keys to be extracted
                 df = pd.read_csv(files[0], sep=r"\s+", engine="python", skiprows=1)
-                # remove columns with zero
-                df = df.loc[:, (df != 0.0).any(axis=0)]
-                Ikey = "tttt"
+
+                df_emptycolumns = df.mask(df != 0).dropna(axis=1)
+                keys_emptycolumns = [
+                    _key
+                    for _key in df_emptycolumns.columns.values.tolist()
+                    if re.match(r"Icoil\d+", _key)
+                ]
+                for _key in ["Icoil15", "Icoil16"]:
+                    try:
+                        keys_emptycolumns.remove(_key)
+                    except ValueError:
+                        pass
+                print(f"keys_emptycolumns={keys_emptycolumns}")
 
                 # get first Icoil column (not necessary Icoil1)
                 keys = df.columns.values.tolist()
@@ -233,18 +260,17 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 Ikeys = []
                 for _key in keys:
                     _found = re.match("(Icoil\d+)", _key)
-                    if _found:
+                    if _found and not _key in keys_emptycolumns:
                         Ikeys.append(_found.group())
                 Ikey = Ikeys[0]
                 if otype == "bitter":
                     Ikey = Ikeys[-1]
                 print(f"Ikey={Ikey}")
-                del df
+                df = pd.DataFrame()
 
                 dropped_files = []
 
                 # Imax detection
-
                 new_Imax = []
                 for file in files:
                     _df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
@@ -252,34 +278,49 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         print(f"{Ikey}: no such key in {file} - ignore {file}")
                         dropped_files.append(file)
                     else:
-                        _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
-                        threshold = _Rpmmax * (1 - 0.1 / 100.0)
-                        result = _df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
-                        if not result.empty:
-                            if result[Ikey].std() >= 10:
-                                if debug:
-                                    _Istats = result[Ikey].describe(include="all")
-                                    print(
-                                        f'Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}, Field: {result["Field"].max()}'
-                                    )
-                                    """ """
-                                    import matplotlib.pyplot as plt
+                        # drop if duration is less than threshold ??
+                        if "Date" in _df.columns.values.tolist() and "Time" in _df.columns.values.tolist():
+                            tformat = "%Y.%m.%d %H:%M:%S"
+                            t0 = datetime.datetime.strptime(
+                                _df["Date"].iloc[0] + " " + _df["Time"].iloc[0], tformat
+                            )
+                            _df["t"] = _df.apply(
+                                lambda row: (
+                                    datetime.datetime.strptime(row.Date + " " + row.Time, tformat)
+                                    - t0
+                                ).total_seconds(),
+                                axis=1,
+                            )
+                        duration = _df["t"].iloc[-1] - _df["t"][0]
+                        if duration <= 15*60 :
+                            dropped_files.append(file)
+                            
+                        else:
+                            _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
+                            threshold = _Rpmmax * (1 - 0.1 / 100.0)
+                            result = _df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
+                            if not result.empty:
+                                if result[Ikey].std() >= 10 and result[Ikey].count() >= 100 and result['Field'].max() >= 0.5 :
+                                    if debug:
+                                        _Istats = result[Ikey].describe(include="all")
+                                        print(
+                                            f'Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}, Field: {result["Field"].max()}'
+                                        )
+                                        """ """
+                                        import matplotlib.pyplot as plt
 
-                                    result.plot.scatter(
-                                        x=Ikey, y=fit_data[housing]["Rpm"], grid=True
-                                    )
-                                    lname = file.replace("_", "-")
-                                    lname = lname.replace(".txt", "")
-                                    lname = lname.split("/")
-                                    plt.title(lname[-1])
-                                    plt.show()
-                                    plt.close()
-                                    """ """
+                                        result.plot.scatter(
+                                            x=Ikey, y=fit_data[housing]["Rpm"], grid=True
+                                        )
+                                        lname = file.replace("_", "-")
+                                        lname = lname.replace(".txt", "")
+                                        lname = lname.split("/")
+                                        plt.title(lname[-1])
+                                        plt.show()
+                                        plt.close()
+                                        """ """
 
-                                new_Imax.append(result[Ikey].min())
-
-                        del result
-                        del _df
+                                    new_Imax.append(result[Ikey].min())
 
                     """
                     # xField = (Ikey, "A")
@@ -303,7 +344,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         Imax = new_Imax_mean
 
                 for file in dropped_files:
-                    files.drop(file)
+                    files.remove(file)
 
                 def vpump_func(x, a: float, b: float):
                     return a * (x / Imax) ** 2 + b
@@ -323,10 +364,11 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 flow_params["Vpmax"]["value"] = params[0]
                 vp0 = flow_params["Vp0"]["value"]
                 vpmax = flow_params["Vpmax"]["value"]
+                params = []
 
                 # Fit for Flow
-                def flow_func(x, F0: float, Fmax: float):
-                    return F0 + Fmax * vpump_func(x, vpmax, vp0) / (vpmax + vp0)
+                def flow_func(x, a: float, b: float):
+                    return a + b * vpump_func(x, vpmax, vp0) / (vpmax + vp0)
 
                 params = fit(
                     Ikey,
@@ -341,12 +383,11 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 )
                 flow_params["F0"]["value"] = params[0]
                 flow_params["Fmax"]["value"] = params[1]
-                F0 = flow_params["F0"]["value"]
-                Fmax = flow_params["Fmax"]["value"]
+                params = []
 
                 # Fit for Pressure
-                def pressure_func(x, P0: float, Pmax: float):
-                    return P0 + Pmax * (vpump_func(x, vpmax, vp0) / (vpmax + vp0)) ** 2
+                def pressure_func(x, a: float, b: float):
+                    return a + b * (vpump_func(x, vpmax, vp0) / (vpmax + vp0)) ** 2
 
                 params = fit(
                     Ikey,
@@ -363,6 +404,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 flow_params["Pmax"]["value"] = params[1]
                 P0 = flow_params["Pmin"]["value"]
                 Pmax = flow_params["Pmax"]["value"]
+                params = []
 
                 # correlation Pout
                 params = stats(
@@ -371,11 +413,16 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     "Pout",
                     Imax,
                     files,
+                    cwd,
+                    f"{sname}-{mname}",
                     debug,
                 )
-                flow_params["Pout"]["value"] = params[fit_data[housing]["Pout"]].mean()
-                del params
+                print(f'Pout(mean, std): {param}')
+                Pout = params[0]
+                flow_params["Pout"]["value"] = Pout
 
+                print(f'flow_params: {json.dumps(flow_params, indent=4)}')
+                
                 # save flow_params
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
                 with open(filename, "w") as f:
