@@ -9,6 +9,7 @@ import re
 
 import numpy as np
 from scipy import optimize
+from math import floor, ceil
 
 import datetime
 
@@ -57,8 +58,8 @@ def stats(
 
     if debug:
         stats = result[Okey].describe(include="all")
-        print(f'{Okey}: stats')
-    return (result[Okey].mean(), result[Okey].std()) 
+        print(f"{Okey}: stats")
+    return (result[Okey].mean(), result[Okey].std())
 
 
 def fit(
@@ -212,17 +213,25 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
             # download files
             files = []
             total = 0
-            ithreshold = 40 # TODO set appropriate value
             nrecords = len(records)
+            ithreshold = nrecords
+            if nrecords > 20:
+                ithreshold = min(20, floor(nrecords * 0.80))
             if debug:
                 print(f"site[{site['site']['name']}]: nrecords={nrecords}")
 
             housing = None
+            import random
+
+            num_records = range(ithreshold)
+            if nrecords > 20:
+                num_records = random.sample(range(0, nrecords), ithreshold)
+            print(f"randomly selected records ({ithreshold}): {num_records}")
             for i in track(
-                range(nrecords),
-                description=f"Processing records for site {site['site']['name']} / {nrecords}",
+                range(ithreshold),
+                description=f"Processing records for site {site['site']['name']} (pick {ithreshold}/ {nrecords}",
             ):
-                f = records[i]
+                f = records[num_records[i]]
                 # print(f'f={f}')
                 attach = f["attachment_id"]
                 filename = utils.download(
@@ -230,10 +239,10 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 )
                 housing = filename.split("_")[0]
                 files.append(filename)
-                total += 1
-                if i >= min(ithreshold, nrecords):
+                """
+                if i >= ithreshold:
                     break
-            print(f"Processed {total} records.")
+                """
 
             if files:
                 # get keys to be extracted
@@ -250,7 +259,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         keys_emptycolumns.remove(_key)
                     except ValueError:
                         pass
-                print(f"keys_emptycolumns={keys_emptycolumns}")
+                # print(f"keys_emptycolumns={keys_emptycolumns}")
 
                 # get first Icoil column (not necessary Icoil1)
                 keys = df.columns.values.tolist()
@@ -260,7 +269,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 # key first or latest header that match Icoil\d+ depending on mtype
                 Ikeys = []
                 for _key in keys:
-                    _found = re.match("(Icoil\d+)", _key)
+                    _found = re.match(r"(Icoil\d+)", _key)
                     if _found and not _key in keys_emptycolumns:
                         Ikeys.append(_found.group())
                 Ikey = Ikeys[0]
@@ -280,28 +289,39 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                         dropped_files.append(file)
                     else:
                         # drop if duration is less than threshold ??
-                        if "Date" in _df.columns.values.tolist() and "Time" in _df.columns.values.tolist():
+                        if (
+                            "Date" in _df.columns.values.tolist()
+                            and "Time" in _df.columns.values.tolist()
+                        ):
                             tformat = "%Y.%m.%d %H:%M:%S"
                             t0 = datetime.datetime.strptime(
                                 _df["Date"].iloc[0] + " " + _df["Time"].iloc[0], tformat
                             )
                             _df["t"] = _df.apply(
                                 lambda row: (
-                                    datetime.datetime.strptime(row.Date + " " + row.Time, tformat)
+                                    datetime.datetime.strptime(
+                                        row.Date + " " + row.Time, tformat
+                                    )
                                     - t0
                                 ).total_seconds(),
                                 axis=1,
                             )
                         duration = _df["t"].iloc[-1] - _df["t"][0]
-                        if duration <= 15*60 :
+                        if duration <= 15 * 60:
                             dropped_files.append(file)
-                            
+
                         else:
                             _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
                             threshold = _Rpmmax * (1 - 0.1 / 100.0)
-                            result = _df.query(f'{fit_data[housing]["Rpm"]} >= {threshold}')
+                            result = _df.query(
+                                f'{fit_data[housing]["Rpm"]} >= {threshold}'
+                            )
                             if not result.empty:
-                                if result[Ikey].std() >= 10 and result[Ikey].count() >= 100 and result['Field'].max() >= 0.5 :
+                                if (
+                                    result[Ikey].std() >= 10
+                                    and result[Ikey].count() >= 100
+                                    and result["Field"].max() >= 0.5
+                                ):
                                     if debug:
                                         _Istats = result[Ikey].describe(include="all")
                                         print(
@@ -311,7 +331,9 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                                         import matplotlib.pyplot as plt
 
                                         result.plot.scatter(
-                                            x=Ikey, y=fit_data[housing]["Rpm"], grid=True
+                                            x=Ikey,
+                                            y=fit_data[housing]["Rpm"],
+                                            grid=True,
                                         )
                                         lname = file.replace("_", "-")
                                         lname = lname.replace(".txt", "")
@@ -418,13 +440,12 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                     f"{sname}-{mname}",
                     debug,
                 )
-                print(f'Pout(mean, std): {params}')
+                print(f"Pout(mean, std): {params}")
                 Pout = params[0]
                 flow_params["Pout"]["value"] = Pout
 
-                
                 # save flow_params
-                print(f'flow_params: {json.dumps(flow_params, indent=4)}')
+                print(f"flow_params: {json.dumps(flow_params, indent=4)}")
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
                 with open(filename, "w") as f:
                     f.write(json.dumps(flow_params, indent=4))
