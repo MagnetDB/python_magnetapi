@@ -27,6 +27,7 @@ import MagnetTools.MagnetTools as mt
 
 
 def compute(
+    session,
     api_server: str,
     headers: dict,
     oid: int,
@@ -42,6 +43,7 @@ def compute(
         return None
 
     part = utils.get_object(
+        session,
         f"{api_server}",
         headers=headers,
         mtype="part",
@@ -71,7 +73,7 @@ def compute(
     print(f"cwd={cwd}")
 
     sites = utils.get_history(
-        api_server, headers, oid, mtype=mtype, otype="site", debug=debug
+        session, api_server, headers, oid, mtype=mtype, otype="site", debug=debug
     )
     if debug:
         print(f"sites: {sites}")
@@ -90,6 +92,7 @@ def compute(
         ):  # track(range(nsites), description=f"Processing sites for part {part['name']}..."):
             # get site with records
             site = utils.get_object(
+                session,
                 f"{api_server}",
                 headers=headers,
                 mtype="site",
@@ -101,7 +104,7 @@ def compute(
 
             # add route to get data in visualisation
             config_data = utils.get_data(
-                api_server, headers, oid=site["id"], mtype="site", debug=debug
+                session, api_server, headers, oid=site["id"], mtype="site", debug=debug
             )
 
             # create datastruct for Hoop calc
@@ -110,6 +113,7 @@ def compute(
             for magnet in site["site_magnets"]:
                 _id = magnet["magnet_id"]
                 _object = utils.get_object(
+                    session,
                     f"{api_server}",
                     headers=headers,
                     mtype="magnet",
@@ -122,6 +126,7 @@ def compute(
                 yamlfile = geom_data["filename"]
                 attach = geom_data["id"]
                 filename = utils.download(
+                    session,
                     api_server,
                     headers,
                     attach,
@@ -135,6 +140,7 @@ def compute(
                     _ptype = part["part"]["type"]
                     if _ptype in ["helix", "bitter", "supra"]:
                         _pobject = utils.get_object(
+                            session,
                             f"{api_server}",
                             headers=headers,
                             mtype="part",
@@ -147,6 +153,7 @@ def compute(
                         yamlfile = geom_data["attachment"]["filename"]
                         attach = geom_data["attachment"]["id"]
                         filename = utils.download(
+                            session,
                             api_server,
                             headers,
                             attach,
@@ -179,7 +186,7 @@ def compute(
 
             # get record data
             total = 0
-            # records = utils.get_history(api_server, headers, site['site_id'], mtype='site', otype='record', verbose=debug, debug=debug) #site_obj['records']
+            # records = utils.get_history(session, api_server, headers, site['site_id'], mtype='site', otype='record', verbose=debug, debug=debug) #site_obj['records']
             nrecords = len(site["records"])
             for j in track(
                 range(nrecords),
@@ -188,7 +195,7 @@ def compute(
                 f = site["records"][j]
                 # print(f'f={f}')
                 attach = f["attachment_id"]
-                filename = utils.download(api_server, headers, attach, debug)
+                filename = utils.download(session, api_server, headers, attach, debug)
                 housing = filename.split("_")[0]
                 if filename.endswith(".txt"):
                     rundata = MagnetRun.fromtxt(housing, site["name"], filename)

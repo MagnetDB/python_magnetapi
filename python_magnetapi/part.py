@@ -8,6 +8,7 @@ from . import material
 
 
 def create(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -18,7 +19,7 @@ def create(
     create a part from a data dictionnary
     """
 
-    ids = utils.get_list(api_server, headers=headers, mtype="part", debug=debug)
+    ids = utils.get_list(session, api_server, headers=headers, mtype="part", debug=debug)
     if data["name"] in ids:
         print(f"part with name={data['name']} already exists")
         return None
@@ -26,7 +27,7 @@ def create(
     else:
         # search or create material in db
         mat_ids = utils.get_list(
-            api_server, headers=headers, mtype="material", debug=debug
+            session, api_server, headers=headers, mtype="material", debug=debug
         )
         mat = data["material"]
         if isinstance(mat, str):
@@ -43,7 +44,7 @@ def create(
                 _id = mat_ids[mname]
             else:
                 _id = material.create(
-                    api_server, headers, mat, verbose=verbose, debug=debug
+                    session, api_server, headers, mat, verbose=verbose, debug=debug
                 )
 
             data["material_id"] = _id
@@ -71,7 +72,7 @@ def create(
 
         # get material id, and set data accordingly
         print(f"part/create: data={data}")
-        response = utils.post_data(api_server, headers, data, "part", verbose, debug)
+        response = utils.post_data(session, api_server, headers, data, "part", verbose, debug)
         if response is None:
             print(f"part {data['name']} failed to be created")
             return None
@@ -81,13 +82,14 @@ def create(
         part_id = response["id"]
         for magnet in magnets:
             _ids = utils.get_list(
-                api_server, headers=headers, mtype="magnet", debug=debug
+                session, api_server, headers=headers, mtype="magnet", debug=debug
             )
             if magnet in _ids:
                 _id = _ids[magnet]
                 # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
                 # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
                 utils.add_data_to_object(
+                    session,
                     api_server,
                     headers,
                     _id,
@@ -107,6 +109,7 @@ def create(
         if geometries:
             geomfile = f"{geometries[0]}.yaml"
             utils.add_data_files_to_object(
+                session,
                 api_server,
                 headers,
                 response["id"],

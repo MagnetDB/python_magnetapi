@@ -9,6 +9,7 @@ from .attachment import create as attach_create
 
 
 def create(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -19,14 +20,14 @@ def create(
     create a record from a data dictionnary
     """
 
-    _ids = utils.get_list(api_server, headers=headers, mtype="record", debug=debug)
+    _ids = utils.get_list(session, api_server, headers=headers, mtype="record", debug=debug)
     if data["name"] in _ids:
         print(f"record with name={data['name']} already exists")
         return None
 
     else:
         # look for site
-        _ids = utils.get_list(api_server, headers=headers, mtype="site", debug=debug)
+        _ids = utils.get_list(session, api_server, headers=headers, mtype="site", debug=debug)
         if not data["site"] in _ids:
             print(
                 f"create(record, name={data['name']}): site with name={data['site']} does not exist - must be created first"
@@ -38,14 +39,14 @@ def create(
             del data["site"]
 
             data["attachment_id"] = attach_create(
-                api_server, headers, data["file"], verbose, debug
+                session, api_server, headers, data["file"], verbose, debug
             )
             del data["file"]
             print(f"data:{data}")
 
             # process record data: remove empty columns, rename columns, add Hoopstress data
             response = utils.post_json(
-                api_server, headers, data, "clirecord", verbose, debug=True
+                session, api_server, headers, data, "clirecord", verbose, debug=True
             )
             if response is None:
                 print(f"record {data['name']} failed to be created")

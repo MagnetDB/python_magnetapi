@@ -14,7 +14,7 @@ import requests.exceptions
 
 from . import utils
 
-api_server = os.getenv("MAGNETDB_API_SERVER") or "magnetdb-api.lncmig.local"
+api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
 api_key = os.getenv("MAGNETDB_API_KEY")
 
 
@@ -238,29 +238,34 @@ def main():
     payload = {}
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
     web = f"http://{args.server}:{args.port}"
+    verify = True
     if args.https:
         web = f"https://{args.server}"
+        verify = '/etc/ssl/certs'
 
+    print(f'server: {web}, verify={verify}')
     with requests.Session() as s:
+        print('requests')
         r = s.get(f"{web}/api/{otype}s", headers=headers, verify=True)
-        response = r.json()
-        if args.debug:
-            print(f"response={response}")
-
-        if "detail" in response and response["detail"] == "Forbidden.":
-            raise RuntimeError(
-                f"{args.server} : wrong credentials - check MAGNETDB_API_KEY"
-            )
-
+        print(f'done (r={r}, isOk={r.status_code == requests.codes.ok}', flush=True)
+        if not r.status_code == requests.codes.ok:
+            response = r.json()
+            if "detail" in response and response["detail"] == "Forbidden.":
+                raise RuntimeError(
+                    f"{args.server} : wrong credentials - check MAGNETDB_API_KEY"
+                )
+            raise RuntimeError(f"{args.server} : unknown reason")
+        print(f's.verify={s.verify}')
+        
         if args.command == "list":
-            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
+            ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
             for obj in ids:
                 print(f"{args.mtype.upper()}: {obj}, id={ids[obj]}")
 
         if args.command == "view":
             # add a filter for view
-            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
+            ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             print(f"view: ids={ids}")
             if args.name in ids:
                 response = utils.get_object(
@@ -308,7 +313,7 @@ def main():
             }
 
             id = ocreate[otype](
-                web, headers=headers, data=data, verbose=True, debug=args.debug
+                s, web, headers=headers, data=data, verbose=True, debug=args.debug
             )
 
             # create material if not already done then part
@@ -320,6 +325,7 @@ def main():
             if args.name in ids:
                 print(f"{args.name}: id={ids[args.name]}")
                 response = utils.del_object(
+                    s,
                     web,
                     headers=headers,
                     mtype=otype,
@@ -338,9 +344,10 @@ def main():
                     f"unexpected type {args.mtype} in run subcommand - expect mtype=site|magnet"
                 )
 
-            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
+            ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             if args.name in ids:
                 response = utils.get_object(
+                    s,
                     web,
                     headers=headers,
                     mtype=otype,
@@ -359,6 +366,7 @@ def main():
             # currents: List[CreatePayloadCurrent]
             # with CreatePayloadCurrent(BaseModel): magnet_id: int, value: float
             object = utils.get_object(
+                s,
                 web,
                 headers,
                 ids[args.name],
@@ -409,6 +417,7 @@ def main():
             # check parameters consistency: see allowed_methods in
             # create simu
             simu_id = utils.create_object(
+                s,
                 web,
                 headers=headers,
                 mtype="simulation",
@@ -423,12 +432,13 @@ def main():
 
             # run setup
             print("Starting setup...")
-            r = requests.post(
+            r = s.post(
                 f"{web}/api/simulations/{simu_id}/run_setup", headers=headers
             )
 
             while True:
                 simulation = utils.get_object(
+                    s,
                     web,
                     headers=headers,
                     mtype="simulation",
@@ -446,6 +456,7 @@ def main():
 
             setup_arch_id = simulation["setup_output_attachment"]["id"]
             setup_filename = utils.download(
+                s,
                 web,
                 headers=headers,
                 attach=setup_arch_id,
@@ -458,6 +469,7 @@ def main():
         if args.command == "run":
             # find simu_id
             simu = utils.get_object(
+                s,
                 web,
                 headers=headers,
                 id=args.simu_id,
@@ -470,7 +482,7 @@ def main():
                 )
 
             # Run simu with ssh
-            ids = utils.get_list(web, headers=headers, mtype="server", debug=args.debug)
+            ids = utils.get_list(s, web, headers=headers, mtype="server", debug=args.debug)
             if args.compute_server in ids:
                 server_id = ids[args.compute_server]
             else:
@@ -480,6 +492,7 @@ def main():
 
             # TODO get server data - aka np
             server_data = utils.get_object(
+                s,
                 web,
                 headers=headers,
                 mtype="server",
@@ -488,13 +501,14 @@ def main():
             )
 
             print("Starting simulation...")
-            r = requests.post(
+            r = s.post(
                 f"{web}/api/simulations/{args.simu_id}/run",
                 data={"server_id": server_id},
                 headers=headers,
             )
             while True:
                 simulation = utils.get_object(
+                    s,
                     web,
                     headers=headers,
                     mtype="simulation",
@@ -512,6 +526,7 @@ def main():
             print(f"simulation={simulation}")
             simu_arch_id = simulation["output_attachment"]["id"]
             simu_filename = utils.download(
+                s,
                 web,
                 headers=headers,
                 attach=simu_arch_id,
@@ -529,10 +544,11 @@ def main():
                     )
 
                 ids = utils.get_list(
-                    web, headers=headers, mtype=otype, debug=args.debug
+                    s, web, headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
                     response = utils.get_object(
+                        s,
                         web,
                         headers=headers,
                         mtype=otype,
@@ -542,6 +558,7 @@ def main():
                     from . import flow_params
 
                     flow_params.compute(
+                        s,
                         web,
                         headers=headers,
                         oid=ids[args.name],
@@ -559,10 +576,11 @@ def main():
                     )
 
                 ids = utils.get_list(
-                    web, headers=headers, mtype=otype, debug=args.debug
+                    s, web, headers=headers, mtype=otype, debug=args.debug
                 )
                 if args.name in ids:
                     response = utils.get_object(
+                        s,
                         web,
                         headers=headers,
                         mtype=otype,
@@ -572,6 +590,7 @@ def main():
                     from . import hoop_stress
 
                     hoop_stress.compute(
+                        s,
                         web,
                         headers=headers,
                         mtype=otype,
