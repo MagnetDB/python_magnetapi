@@ -8,6 +8,7 @@ from . import utils
 
 
 def create(
+    session,
     api_server: str,
     headers: dict,
     data: str,
@@ -27,7 +28,9 @@ def create(
     files = {"file": open(basename, "rb")}
 
     # create an attachment
-    response = utils.post_file(api_server, headers, files, "attachment", verbose, debug)
+    response = utils.post_file(
+        session, api_server, headers, files, "attachment", verbose, debug
+    )
     if response is None:
         print(f"record {data['name']} failed to create attachment {data}")
         return None

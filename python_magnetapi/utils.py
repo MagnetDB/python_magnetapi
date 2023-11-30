@@ -8,6 +8,7 @@ import re
 
 
 def get_list(
+    session,
     api_server: str,
     headers: dict,
     mtype: str = "magnets",
@@ -26,7 +27,7 @@ def get_list(
 
     n = 1
     while True:
-        r = requests.get(f"{api_server}/api/{mtype}s?page={n}", headers=headers)
+        r = session.get(f"{api_server}/api/{mtype}s?page={n}", headers=headers)
         if r.status_code != 200:
             print(response["detail"])
             break
@@ -50,7 +51,7 @@ def get_list(
                 resource_type = object["resource_type"][:-1]
                 resource_id = object["resource_id"]
                 resource = get_object(
-                    api_server, headers, resource_id, resource_type, verbose, debug
+                    session, api_server, headers, resource_id, resource_type, verbose, debug
                 )
                 object[
                     "name"
@@ -75,6 +76,7 @@ def get_list(
 
 
 def get_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -88,7 +90,7 @@ def get_object(
     if verbose:
         print(f"get_object: api_server={api_server}, mtype={mtype}, id={id}")
 
-    r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
+    r = session.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
     response = r.json()
 
     if r.status_code != 200:
@@ -100,6 +102,7 @@ def get_object(
 
 
 def create_object(
+    session,
     api_server: str,
     headers: dict,
     mtype: str = "magnet",
@@ -116,11 +119,11 @@ def create_object(
     web = f"{api_server}/api/{mtype}s"
     r = None
     if mtype in ["attachment"]:
-        r = requests.post(web, files=data, headers=headers)
+        r = session.post(web, files=data, headers=headers)
     elif mtype in ["simulation", "material", "record"]:
-        r = requests.post(web, json=data, headers=headers)
+        r = session.post(web, json=data, headers=headers)
     else:
-        r = requests.post(web, data=data, headers=headers)
+        r = session.post(web, data=data, headers=headers)
 
     response = r.json()
     if r.status_code != 200:
@@ -138,6 +141,7 @@ def create_object(
 
 
 def update_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -154,7 +158,7 @@ def update_object(
         print(f"update_object: api_server={api_server}, mtype={mtype}, data={data}")
 
     web = f"{api_server}/api/{mtype}s/{id}"
-    r = requests.patch(web, data=data, headers=headers)
+    r = session.patch(web, data=data, headers=headers)
 
     response = r.json()
     if r.status_code != 200:
@@ -172,6 +176,7 @@ def update_object(
 
 
 def update_associative_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -191,7 +196,7 @@ def update_associative_object(
         )
 
     web = f"{api_server}/api/{mtype}s/{id}/{dtype}s"
-    r = requests.patch(web, data=data, headers=headers)
+    r = session.patch(web, data=data, headers=headers)
 
     response = r.json()
     if r.status_code != 200:
@@ -209,6 +214,7 @@ def update_associative_object(
 
 
 def del_object(
+    session,
     api_server: str,
     headers: dict,
     mtype: str = "magnet",
@@ -221,7 +227,7 @@ def del_object(
     """
     if verbose:
         print(f"del_object: api_server={api_server}, mtype={mtype}, id={id}")
-    r = requests.delete(
+    r = session.delete(
         f"{api_server}/api/{mtype}s/{id}", data={"id": id}, headers=headers
     )
     response = r.json()
@@ -234,6 +240,7 @@ def del_object(
 
 
 def add_data_to_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -252,7 +259,7 @@ def add_data_to_object(
         )
 
     print(f"add_data_to_object: {api_server}/api/{mtype}s/{id}/{dtype}s")
-    r = requests.post(
+    r = session.post(
         f"{api_server}/api/{mtype}s/{id}/{dtype}s",
         data=data,
         headers=headers,
@@ -267,6 +274,7 @@ def add_data_to_object(
 
 
 def add_files_to_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -284,7 +292,7 @@ def add_files_to_object(
             f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
         )
 
-    r = requests.post(
+    r = session.post(
         f"{api_server}/api/{mtype}s/{id}/{dtype}s",
         files=files,
         headers=headers,
@@ -297,6 +305,7 @@ def add_files_to_object(
 
 
 def add_data_files_to_object(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -315,7 +324,7 @@ def add_data_files_to_object(
             f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
         )
 
-    r = requests.post(
+    r = session.post(
         f"{api_server}/api/{mtype}s/{id}/{dtype}s",
         data=data,
         files=files,
@@ -329,6 +338,7 @@ def add_data_files_to_object(
 
 
 def get_history(
+    session,
     api_server: str,
     headers: dict,
     id: int,
@@ -347,7 +357,7 @@ def get_history(
             f"get_history: api_server={api_server}, mtype={mtype}, otype={otype}, id={id}"
         )
 
-    r = requests.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
+    r = session.get(f"{api_server}/api/{mtype}s/{id}", headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
@@ -356,7 +366,7 @@ def get_history(
         return None
 
     if mtype in ["part", "magnet", "site"]:
-        r = requests.get(f"{api_server}/api/{mtype}s/{id}/{otype}s", headers=headers)
+        r = session.get(f"{api_server}/api/{mtype}s/{id}/{otype}s", headers=headers)
         response = r.json()
         if r.status_code != 200:
             print(f"{api_server}/api/{mtype}s/{id}/{otype}s")
@@ -370,6 +380,7 @@ def get_history(
 
 
 def get_data(
+    session,
     api_server: str,
     headers: dict,
     oid: int,
@@ -384,7 +395,7 @@ def get_data(
     if verbose:
         print(f"get_data: api_server={api_server}, mtype={mtype}, id={oid}")
 
-    r = requests.get(f"{api_server}/api/{mtype}s/{oid}/mdata", headers=headers)
+    r = session.get(f"{api_server}/api/{mtype}s/{oid}/mdata", headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
@@ -398,6 +409,7 @@ def get_data(
 
 
 def post_data(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -412,7 +424,7 @@ def post_data(
     if verbose:
         print(f"post_data: api_server={api_server}, mtype={mtype}, data={data}")
 
-    r = requests.post(f"{api_server}/api/{mtype}s", data=data, headers=headers)
+    r = session.post(f"{api_server}/api/{mtype}s", data=data, headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
@@ -426,6 +438,7 @@ def post_data(
 
 
 def post_json(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -440,7 +453,7 @@ def post_json(
     if verbose:
         print(f"post_json: api_server={api_server}, mtype={mtype}, data={data}")
 
-    r = requests.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
+    r = session.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
     response = r.json()
     if r.status_code != 200:
         print(
@@ -454,6 +467,7 @@ def post_json(
 
 
 def post_file(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -469,7 +483,7 @@ def post_file(
         print(f"post_file: api_server={api_server}, mtype={mtype}, files={data}")
 
     print(f"post_file: files={data}")
-    r = requests.post(f"{api_server}/api/{mtype}s", files=data, headers=headers)
+    r = session.post(f"{api_server}/api/{mtype}s", files=data, headers=headers)
     response = r.json()
     print(f"post_file: response={response}")
     if r.status_code != 200:
@@ -484,6 +498,7 @@ def post_file(
 
 
 def download(
+    session,
     api_server: str,
     headers: dict,
     attach: str,
@@ -499,7 +514,7 @@ def download(
     if verbose:
         print(f"download: api_server={api_server}, attach={attach}")
 
-    r = requests.get(f"{api_server}/api/attachments/{attach}/download", headers=headers)
+    r = session.get(f"{api_server}/api/attachments/{attach}/download", headers=headers)
     if r.status_code != 200:
         # print(f"download: api_server={api_server}, attach={attach} response={r.status_code}")
         return None
@@ -521,6 +536,7 @@ def download(
 
 
 def upload(
+    session,
     api_server: str,
     headers: dict,
     attach: str,

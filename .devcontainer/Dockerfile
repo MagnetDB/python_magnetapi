@@ -30,7 +30,7 @@ RUN apt-get update \
     && apt-get -y install build-essential \
     && apt-get -y install g++ cmake \
     #\
-    && apt-get -y install python3-minimal libpython3.9-dev swig \
+    && apt-get -y install python3-minimal libpython3-dev swig \
     && apt-get -y install python-is-python3 python3-pip python3-jinja2 \
     && apt-get -y install python3-autopep8 black yapf3 python3-bandit flake8 pydocstyle pylint python3-pytest mypy \
     && apt-get -y install python3-nlopt python3-tabulate python3-yaml \

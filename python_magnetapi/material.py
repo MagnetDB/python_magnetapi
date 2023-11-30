@@ -7,6 +7,7 @@ from . import utils
 
 
 def create(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -17,7 +18,7 @@ def create(
     create a material from a data dictionnary
     """
 
-    ids = utils.get_list(api_server, headers=headers, mtype="material", debug=debug)
+    ids = utils.get_list(session, api_server, headers=headers, mtype="material", debug=debug)
     if data["name"] in ids:
         print(f"material with name={data['name']} already exists")
         return None
@@ -25,7 +26,7 @@ def create(
     else:
 
         response = utils.post_json(
-            api_server, headers, data, "material", verbose, debug
+            session, api_server, headers, data, "material", verbose, debug
         )
         if response is None:
             print(f"material {data['name']} failed to be created")

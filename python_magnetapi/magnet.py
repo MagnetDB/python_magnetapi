@@ -9,6 +9,7 @@ from . import site
 
 
 def create(
+    session,
     api_server: str,
     headers: dict,
     data: dict,
@@ -19,7 +20,7 @@ def create(
     create a magnet from a data dictionnary
     """
 
-    ids = utils.get_list(api_server, headers=headers, mtype="magnet", debug=debug)
+    ids = utils.get_list(session, api_server, headers=headers, mtype="magnet", debug=debug)
     if data["name"] in ids:
         print(f"magnet with name={data['name']} already exists")
         return None
@@ -47,7 +48,7 @@ def create(
 
         # data: extract only necessary data for creation
         print(f"create:magnet data={data}")
-        response = utils.post_data(api_server, headers, data, "magnet", verbose, debug)
+        response = utils.post_data(session, api_server, headers, data, "magnet", verbose, debug)
         print(f"create:magnet response={response}")
         if response is None:
             print(f"create:magnet {data['name']} failed to be created")
@@ -59,7 +60,7 @@ def create(
         magnet_id = response["id"]
         for part in parts:
             _ids = utils.get_list(
-                api_server, headers=headers, mtype="part", debug=debug
+                session, api_server, headers=headers, mtype="part", debug=debug
             )
             if isinstance(part, str):
                 # TODO if part is a string use procedure bellow,
@@ -72,6 +73,7 @@ def create(
                         f"create:magnet  {data['name']} attach part id={_id} name={part}"
                     )
                     utils.add_data_to_object(
+                        session,
                         api_server,
                         headers,
                         magnet_id,
@@ -100,6 +102,7 @@ def create(
                     f"create:magnet {data['name']}  attach part id={_id} name={pname}"
                 )
                 utils.add_data_to_object(
+                    session,
                     api_server,
                     headers,
                     magnet_id,
@@ -116,7 +119,7 @@ def create(
 
         for site in sites:
             _ids = utils.get_list(
-                api_server, headers=headers, mtype="site", debug=debug
+                session, api_server, headers=headers, mtype="site", debug=debug
             )
             if isinstance(site, str):
                 if site in _ids:
@@ -126,6 +129,7 @@ def create(
                         f"create:magnet {data['name']}  attach site id={_id} name={site}"
                     )
                     utils.add_data_to_object(
+                        session,
                         api_server,
                         headers,
                         site_id,
@@ -150,6 +154,7 @@ def create(
         if geometries:
             geomfile = f"{geometries[0]}.yaml"
             utils.add_data_files_to_object(
+                session,
                 api_server,
                 headers,
                 response["id"],

@@ -111,7 +111,7 @@ def fit(
     return params
 
 
-def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
+def compute(session, api_server: str, headers: dict, oid: int, debug: bool = False):
     """
     compute flow_params for a given magnet
     """
@@ -136,6 +136,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
 
     # get magnet type: aka bitter|helix|supra ??
     odata = utils.get_object(
+        session,
         api_server,
         headers=headers,
         mtype="magnet",
@@ -186,7 +187,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
         }
 
     sites = utils.get_history(
-        api_server, headers, oid, mtype="magnet", otype="site", debug=debug
+        session, api_server, headers, oid, mtype="magnet", otype="site", debug=debug
     )
     if debug:
         print(f"sites: {json.dumps(sites, indent=2, default=str)}")
@@ -201,6 +202,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
         for site in sites:
             sname = site["site"]["name"]
             records = utils.get_history(
+                session,
                 api_server,
                 headers,
                 site["site_id"],
@@ -235,7 +237,7 @@ def compute(api_server: str, headers: dict, oid: int, debug: bool = False):
                 # print(f'f={f}')
                 attach = f["attachment_id"]
                 filename = utils.download(
-                    api_server, headers, attach, verbose=debug, debug=debug
+                    session, api_server, headers, attach, verbose=debug, debug=debug
                 )
                 housing = filename.split("_")[0]
                 files.append(filename)
