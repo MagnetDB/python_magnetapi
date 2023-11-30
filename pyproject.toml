@@ -7,7 +7,7 @@ authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
           ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.11"
 requests = "^2.27.1"
 param = "^1.12.0"
 pandas = "^1.4.1"
@@ -16,7 +16,7 @@ scipy = "^1.9.3"
 #magnettools = {path = "/home/feelpp/magnettools-1.0.7/build/Python/dist/MagnetTools-0.1.0-py3-none-any.whl"}
 #python-magnetgeo = {path = "python_magnetsgeo"}
 python-magnetsetup = {path = "../python_magnetsetup"}
-python-magnetrun = {path = "../python_magnetrun"}
+#python-magnetrun = {path = "../python_magnetrun"}
 rich = "^9.11.0"
 
 
