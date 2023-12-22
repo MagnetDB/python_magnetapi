@@ -2,7 +2,6 @@
 create material
 """
 
-import requests
 from . import utils
 
 
@@ -18,13 +17,14 @@ def create(
     create a material from a data dictionnary
     """
 
-    ids = utils.get_list(session, api_server, headers=headers, mtype="material", debug=debug)
+    ids = utils.get_list(
+        session, api_server, headers=headers, mtype="material", debug=debug
+    )
     if data["name"] in ids:
         print(f"material with name={data['name']} already exists")
         return None
 
     else:
-
         response = utils.post_json(
             session, api_server, headers, data, "material", verbose, debug
         )

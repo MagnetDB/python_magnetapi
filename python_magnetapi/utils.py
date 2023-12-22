@@ -3,7 +3,6 @@ Utils for interaction with MagnetDB
 """
 
 import json
-import requests
 import re
 
 

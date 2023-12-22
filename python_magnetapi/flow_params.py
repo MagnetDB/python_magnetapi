@@ -9,7 +9,7 @@ import re
 
 import numpy as np
 from scipy import optimize
-from math import floor, ceil
+from math import floor
 
 import datetime
 
@@ -272,7 +272,7 @@ def compute(session, api_server: str, headers: dict, oid: int, debug: bool = Fal
                 Ikeys = []
                 for _key in keys:
                     _found = re.match(r"(Icoil\d+)", _key)
-                    if _found and not _key in keys_emptycolumns:
+                    if _found and _key not in keys_emptycolumns:
                         Ikeys.append(_found.group())
                 Ikey = Ikeys[0]
                 if otype == "bitter":
@@ -286,7 +286,7 @@ def compute(session, api_server: str, headers: dict, oid: int, debug: bool = Fal
                 new_Imax = []
                 for file in files:
                     _df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
-                    if not Ikey in _df.columns.values.tolist():
+                    if Ikey not in _df.columns.values.tolist():
                         print(f"{Ikey}: no such key in {file} - ignore {file}")
                         dropped_files.append(file)
                     else:

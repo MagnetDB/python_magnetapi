@@ -2,10 +2,10 @@
 create magnet
 """
 
-import requests
 from . import utils
-from . import part
-from . import site
+
+# from . import part
+# from . import site
 
 
 def create(
@@ -20,7 +20,9 @@ def create(
     create a magnet from a data dictionnary
     """
 
-    ids = utils.get_list(session, api_server, headers=headers, mtype="magnet", debug=debug)
+    ids = utils.get_list(
+        session, api_server, headers=headers, mtype="magnet", debug=debug
+    )
     if data["name"] in ids:
         print(f"magnet with name={data['name']} already exists")
         return None
@@ -48,7 +50,9 @@ def create(
 
         # data: extract only necessary data for creation
         print(f"create:magnet data={data}")
-        response = utils.post_data(session, api_server, headers, data, "magnet", verbose, debug)
+        response = utils.post_data(
+            session, api_server, headers, data, "magnet", verbose, debug
+        )
         print(f"create:magnet response={response}")
         if response is None:
             print(f"create:magnet {data['name']} failed to be created")
@@ -70,7 +74,7 @@ def create(
                     # how to create MagnetPart: use /api/magnets/{magnet_id}/parts
                     # create(magnet_id: int, user=Depends(get_user('create')), part_id: int = Form(...))
                     print(
-                        f"create:magnet  {data['name']} attach part id={_id} name={part}"
+                        f"create:magnet  {data['name']} attach part id={pdata['part_id']} name={part}"
                     )
                     utils.add_data_to_object(
                         session,

@@ -2,10 +2,10 @@
 create site
 """
 
-import requests
 from . import utils
-from . import magnet
-from . import record
+
+# from . import magnet
+# from . import record
 
 
 def create(
@@ -20,7 +20,9 @@ def create(
     create a site from a data dictionnary
     """
 
-    ids = utils.get_list(session, api_server, headers=headers, mtype="site", debug=debug)
+    ids = utils.get_list(
+        session, api_server, headers=headers, mtype="site", debug=debug
+    )
     if data["name"] in ids:
         print(f"site with name={data['name']} already exists")
         return None
@@ -43,7 +45,9 @@ def create(
         if "status" in data:
             del data["status"]
 
-        response = utils.post_data(session, api_server, headers, data, "site", verbose, debug)
+        response = utils.post_data(
+            session, api_server, headers, data, "site", verbose, debug
+        )
         if response is None:
             print(f"site {data['name']} failed to be created")
             return None
@@ -86,7 +90,12 @@ def create(
                     _id = _ids[magnet["name"]]
                 else:
                     _id = magnet.create(
-                        session, api_server, headers, magnet, verbose=verbose, debug=debug
+                        session,
+                        api_server,
+                        headers,
+                        magnet,
+                        verbose=verbose,
+                        debug=debug,
                     )
 
             else:
@@ -95,7 +104,7 @@ def create(
                 )
 
             # call to api/sites/{site_id}/magnets with magnetid = _id
-            if not _id is None:
+            if _id is not None:
                 print(f"create:site attach magnet id={_id} name={mname}")
                 utils.add_data_to_object(
                     session,
