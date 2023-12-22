@@ -28,6 +28,7 @@ def get_list(
     n = 1
     while True:
         r = session.get(f"{api_server}/api/{mtype}s?page={n}", headers=headers)
+        response = r.json()
         if r.status_code != 200:
             print(response["detail"])
             break
@@ -35,7 +36,6 @@ def get_list(
             print(
                 f"get_list: {api_server}/api/{mtype}s?page={n}, headers={headers}, res={r.text}"
             )
-        response = r.json()
 
         # check r.json() pages max
         current_page = response["current_page"]
@@ -51,7 +51,13 @@ def get_list(
                 resource_type = object["resource_type"][:-1]
                 resource_id = object["resource_id"]
                 resource = get_object(
-                    session, api_server, headers, resource_id, resource_type, verbose, debug
+                    session,
+                    api_server,
+                    headers,
+                    resource_id,
+                    resource_type,
+                    verbose,
+                    debug,
                 )
                 object[
                     "name"

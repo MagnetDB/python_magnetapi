@@ -232,22 +232,22 @@ def main():
 
     # get args
     args = parser.parse_args()
+    print(f"args: {args}")
 
     # main
     otype = args.mtype
-    payload = {}
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
     web = f"http://{args.server}:{args.port}"
     verify = True
     if args.https:
         web = f"https://{args.server}"
-        verify = '/etc/ssl/certs'
+        verify = "/etc/ssl/certs"
 
-    print(f'server: {web}, verify={verify}')
+    print(f"server: {web}, verify={verify}")
     with requests.Session() as s:
-        print('requests')
+        # print("requests")
         r = s.get(f"{web}/api/{otype}s", headers=headers, verify=True)
-        print(f'done (r={r}, isOk={r.status_code == requests.codes.ok}', flush=True)
+        # print(f"done (r={r}, isOk={r.status_code == requests.codes.ok}", flush=True)
         if not r.status_code == requests.codes.ok:
             response = r.json()
             if "detail" in response and response["detail"] == "Forbidden.":
@@ -255,8 +255,8 @@ def main():
                     f"{args.server} : wrong credentials - check MAGNETDB_API_KEY"
                 )
             raise RuntimeError(f"{args.server} : unknown reason")
-        print(f's.verify={s.verify}')
-        
+        # print(f"s.verify={s.verify}")
+
         if args.command == "list":
             ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
@@ -344,6 +344,37 @@ def main():
                     f"unexpected type {args.mtype} in run subcommand - expect mtype=site|magnet"
                 )
 
+            # Check consistant method and model
+            r = s.get(f"{web}/api/simulations/models", headers=headers)
+            response = r.json()
+            if r.status_code != 200:
+                raise RuntimeError(
+                    f'setup: cannot get models dict {response["detail"]}'
+                )
+
+            available_methods = [
+                data["method"] for data in response if data["geometry"] == args.geometry
+            ]
+            available_methods = list(set(available_methods))
+            # print(f"available methods={available_methods}")
+            if args.method not in available_methods:
+                raise RuntimeError(
+                    f"{args.method}: unknown method for {args.geometry} geometry - supported values are {available_methods}"
+                )
+
+            available_models = {}
+            for method in available_methods:
+                available_models[method] = [
+                    data["model"]
+                    for data in response
+                    if data["method"] == args.method
+                    and data["geometry"] == args.geometry
+                ]
+            # print(f"available models={available_models}")
+            if args.model not in available_models[args.method]:
+                raise RuntimeError(
+                    f"{args.model}: unknown model for {args.method} and {args.geometry} geometry - supported values are {available_models[args.method]}"
+                )
             ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             if args.name in ids:
                 response = utils.get_object(
@@ -432,9 +463,7 @@ def main():
 
             # run setup
             print("Starting setup...")
-            r = s.post(
-                f"{web}/api/simulations/{simu_id}/run_setup", headers=headers
-            )
+            r = s.post(f"{web}/api/simulations/{simu_id}/run_setup", headers=headers)
 
             while True:
                 simulation = utils.get_object(
@@ -482,7 +511,9 @@ def main():
                 )
 
             # Run simu with ssh
-            ids = utils.get_list(s, web, headers=headers, mtype="server", debug=args.debug)
+            ids = utils.get_list(
+                s, web, headers=headers, mtype="server", debug=args.debug
+            )
             if args.compute_server in ids:
                 server_id = ids[args.compute_server]
             else:
