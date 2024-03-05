@@ -35,11 +35,17 @@
 			"python.linting.pylintPath": "/usr/bin/pylint",
 			"python.testing.pytestPath": "/usr/bin/pytest-3"
 		},
+		// Add the IDs of extensions you want installed when the container is created in the array below.
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
-				"ms-python.vscode-pylance"
-			]
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter"
+			],
+			"[python]": {
+				"editor.defaultFormatter": "ms-python.black-formatter",
+				"editor.formatOnSave": true
+			}
 		}
 	},
 	// Use 'appPort' to create a container with published ports. If the port isn't working, be sure
