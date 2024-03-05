@@ -593,7 +593,19 @@ def main():
                     )
                     from . import inductances
 
-                print("Compute Self/Mutual inductances")
+                    print("Compute Self/Mutual inductances")
+                    inductances.compute(
+                        s,
+                        api_server,
+                        headers,
+                        oid=ids[args.name],
+                        mtype=otype,
+                        debug=args.debug,
+                    )
+                else:
+                    raise RuntimeError(
+                        f"unexpected name {args.name}: no such object found in {otype} list: {ids.keys()}"
+                    )
 
             if args.flow_params:
                 if otype != "magnet":
