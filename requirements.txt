@@ -1,0 +1,11 @@
+numpy >= 1.19.5
+pandas >=1.4.1
+param >=1.12.0
+requests >=2.27.1
+rich >= 9.11.0
+scipy >= 1.6.0
+python-magnettools
+python-magnetgeo
+python-magnetrun
+pyton-magnetsetup
+pytest
