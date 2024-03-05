@@ -1,0 +1,31 @@
+!<Helix>
+name: test_H1
+dble: false
+odd: true
+r:
+  - 19.3
+  - 24.2
+z:
+  - -226
+  - 108
+cutwidth: 0.2
+axi: !<ModelAxi>
+  name: test
+  h: 100
+  pitch:
+    - 1
+    - 1
+  turns:
+    - 1
+    - 1
+m3d: !<Model3D>
+  cad: ""
+  with_shapes: false
+  with_channels: false
+shape: !<Shape>
+  name: ""
+  profile: ""
+  length: 0
+  angle: 0
+  onturns: 0
+  position: ABOVE

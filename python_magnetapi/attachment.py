@@ -31,8 +31,9 @@ def create(
         session, api_server, headers, files, "attachment", verbose, debug
     )
     if response is None:
-        print(f"record {data['name']} failed to create attachment {data}")
+        print(f"{data['name']} failed to create attachment {data}")
         return None
     os.chdir(cwd)
+    print(f"attachment/create: response={response}")
 
     return response["id"]

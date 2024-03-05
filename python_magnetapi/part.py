@@ -108,7 +108,11 @@ def create(
                 )
 
         # TODO better to have a dict for this part
-        # add geometry: see add_geometry_to_part.py
+        # data['geometry'] = {'default':} with additionnal from part type
+        # see valid_geometry_types in geometry.py
+        # add geometry: see geometry.create
+        # for geometry: files: {'attachment': }
+        # for cad (/api/cad_attachments) : files:{'file': }
         if geometries:
             geomfile = f"{geometries[0]}.yaml"
             utils.add_data_files_to_object(

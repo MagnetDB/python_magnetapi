@@ -13,7 +13,7 @@ def get_list(
     mtype: str = "magnets",
     verbose: bool = False,
     debug: bool = False,
-) -> dict():
+) -> dict:
     """
     return list of ids for selected tpye
     """
@@ -58,9 +58,9 @@ def get_list(
                     verbose,
                     debug,
                 )
-                object[
-                    "name"
-                ] = f"{resource['name']}: {object['method']}/{object['geometry']}/{object['model']}/{object['cooling']}"
+                object["name"] = (
+                    f"{resource['name']}: {object['method']}/{object['geometry']}/{object['model']}/{object['cooling']}"
+                )
             objects[object["name"]] = object
 
         # increment page

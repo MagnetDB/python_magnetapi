@@ -224,6 +224,11 @@ def main():
         "--name", help="specify an object name", type=str, default="None"
     )
     parser_compute.add_argument(
+        "--inductances",
+        help="activate self and mutual inductances",
+        action="store_true",
+    )
+    parser_compute.add_argument(
         "--flow_params", help="activate flow params", action="store_true"
     )
     parser_compute.add_argument(
@@ -321,7 +326,7 @@ def main():
                 print(f"create: type={otype}, name={data['name']} not implemented")
 
         if args.command == "delete":
-            ids = utils.get_list(web, headers=headers, mtype=otype, debug=args.debug)
+            ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
             if args.name in ids:
                 print(f"{args.name}: id={ids[args.name]}")
                 response = utils.del_object(
@@ -568,6 +573,28 @@ def main():
             print(f'simulation {simulation["id"]} done')
 
         if args.command == "compute":
+            if args.inductances:
+                if otype in ["part"]:
+                    raise RuntimeError(
+                        f"unexpected type {args.mtype} in compute subcommand inductances"
+                    )
+
+                ids = utils.get_list(
+                    s, web, headers=headers, mtype=otype, debug=args.debug
+                )
+                if args.name in ids:
+                    response = utils.get_object(
+                        s,
+                        web,
+                        headers=headers,
+                        mtype=otype,
+                        id=ids[args.name],
+                        debug=args.debug,
+                    )
+                    from . import inductances
+
+                print("Compute Self/Mutual inductances")
+
             if args.flow_params:
                 if otype != "magnet":
                     raise RuntimeError(
