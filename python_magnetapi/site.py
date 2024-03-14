@@ -2,10 +2,11 @@
 create site
 """
 
-import requests
 from . import utils
-from . import magnet
-from . import record
+from datetime import datetime
+
+# from . import magnet
+# from . import record
 
 
 def create(
@@ -15,12 +16,14 @@ def create(
     data: dict,
     verbose: bool = False,
     debug: bool = False,
-):
+) -> int:
     """
     create a site from a data dictionnary
     """
 
-    ids = utils.get_list(session, api_server, headers=headers, mtype="site", debug=debug)
+    ids = utils.get_list(
+        session, api_server, headers=headers, mtype="site", debug=debug
+    )
     if data["name"] in ids:
         print(f"site with name={data['name']} already exists")
         return None
@@ -43,7 +46,9 @@ def create(
         if "status" in data:
             del data["status"]
 
-        response = utils.post_data(session, api_server, headers, data, "site", verbose, debug)
+        response = utils.post_data(
+            session, api_server, headers, data, "site", verbose, debug
+        )
         if response is None:
             print(f"site {data['name']} failed to be created")
             return None
@@ -86,7 +91,12 @@ def create(
                     _id = _ids[magnet["name"]]
                 else:
                     _id = magnet.create(
-                        session, api_server, headers, magnet, verbose=verbose, debug=debug
+                        session,
+                        api_server,
+                        headers,
+                        magnet,
+                        verbose=verbose,
+                        debug=debug,
                     )
 
             else:
@@ -95,7 +105,7 @@ def create(
                 )
 
             # call to api/sites/{site_id}/magnets with magnetid = _id
-            if not _id is None:
+            if _id is not None:
                 print(f"create:site attach magnet id={_id} name={mname}")
                 utils.add_data_to_object(
                     session,
@@ -123,3 +133,106 @@ def create(
         # putinoperation: patch /api/sites/{id}/put_in_operation
         # shutdown: patch "/api/sites/{id}/shutdown
         return response["id"]
+
+
+def status(
+    session,
+    api_server: str,
+    headers: dict,
+    data: dict,
+    verbose: bool = False,
+    debug: bool = False,
+) -> bool:
+    """
+    set site status
+
+    /api/sites/{id}/put_in_operation
+    /api/sites/{id}/shutdown
+
+    from magnetdb.models.status.py:
+    class Status:
+
+    data:
+    name: of site
+    id:
+    status:
+    date:
+
+    see python_magnetdb.models.status.py:
+    IN_STUDY = "in_study"
+    IN_STOCK = "in_stock"
+    IN_OPERATION = "in_operation"
+    DEFUNCT = "defunct"
+    """
+    print(f"site.status: data={data}", flush=True)
+
+    if "id" not in data:
+        if "name" not in data:
+            raise RuntimeError(
+                f"site/status: invalid data={data} - missing id or name key"
+            )
+
+        ids = utils.get_list(
+            session, api_server, headers=headers, mtype="site", debug=debug
+        )
+        if data["name"] not in ids:
+            print(f"site with name={data['name']} does not exist")
+            return False
+        data["id"] = ids[data["name"]]
+    else:
+        if "name" not in data:
+            sdata = utils.get_object(
+                session,
+                api_server,
+                headers=headers,
+                mtype="site",
+                id=data["id"],
+                debug=debug,
+            )
+            data["name"] = sdata["name"]
+
+    # do we need to convert to timestamp
+    # post: data = {'[de]commissioned_at': }
+    print(f'date={data["date"]}, type={type(data["date"])}', flush=True)
+    print(
+        f'site: id={data["id"]}, status={data["status"]}, date={data["date"]}',
+        flush=True,
+    )
+
+    tformat = "%Y.%m.%d %H:%M:%S"
+    match data["status"]:
+        case "in_study":
+            return True
+        case "in_stock":
+            # /api/sites/{id}/shutdown
+            tdata = {"decommissioned_at": datetime.strptime(data["date"], tformat)}
+            print(f"tdata={tdata}")
+            response = session.post(
+                f"{api_server}/api/sites/{data['id']}/shutdown",
+                data=tdata,
+                headers=headers,
+            )
+        case "in_operation":
+            # /api/sites/{id}/put_in_operation
+            tdata = {"commissioned_at": datetime.strptime(data["date"], tformat)}
+            print(f"tdata={tdata}")
+            response = session.post(
+                f"{api_server}/api/sites/{data['id']}/put_in_operation",
+                data=tdata,
+                headers=headers,
+            )
+        case _:
+            raise RuntimeError(f'site/status: status={data["status"]} unknown')
+
+    if response is None:
+        print(
+            f"site:status: id={data['id']}, name={data['name']}, failed to set status {data['status']}"
+        )
+        return False
+
+    print(f"site/status: response={response}", flush=True)
+    print(response.status_code)
+    print(response.reason)
+    print(response.json())
+
+    return True

@@ -2,7 +2,6 @@
 create part
 """
 
-import requests
 from . import utils
 from . import material
 
@@ -19,7 +18,9 @@ def create(
     create a part from a data dictionnary
     """
 
-    ids = utils.get_list(session, api_server, headers=headers, mtype="part", debug=debug)
+    ids = utils.get_list(
+        session, api_server, headers=headers, mtype="part", debug=debug
+    )
     if data["name"] in ids:
         print(f"part with name={data['name']} already exists")
         return None
@@ -72,7 +73,9 @@ def create(
 
         # get material id, and set data accordingly
         print(f"part/create: data={data}")
-        response = utils.post_data(session, api_server, headers, data, "part", verbose, debug)
+        response = utils.post_data(
+            session, api_server, headers, data, "part", verbose, debug
+        )
         if response is None:
             print(f"part {data['name']} failed to be created")
             return None
@@ -105,7 +108,11 @@ def create(
                 )
 
         # TODO better to have a dict for this part
-        # add geometry: see add_geometry_to_part.py
+        # data['geometry'] = {'default':} with additionnal from part type
+        # see valid_geometry_types in geometry.py
+        # add geometry: see geometry.create
+        # for geometry: files: {'attachment': }
+        # for cad (/api/cad_attachments) : files:{'file': }
         if geometries:
             geomfile = f"{geometries[0]}.yaml"
             utils.add_data_files_to_object(

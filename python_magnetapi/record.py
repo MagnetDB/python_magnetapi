@@ -2,8 +2,6 @@
 create record
 """
 
-import os
-import requests
 from . import utils
 from .attachment import create as attach_create
 
@@ -20,15 +18,19 @@ def create(
     create a record from a data dictionnary
     """
 
-    _ids = utils.get_list(session, api_server, headers=headers, mtype="record", debug=debug)
+    _ids = utils.get_list(
+        session, api_server, headers=headers, mtype="record", debug=debug
+    )
     if data["name"] in _ids:
         print(f"record with name={data['name']} already exists")
         return None
 
     else:
         # look for site
-        _ids = utils.get_list(session, api_server, headers=headers, mtype="site", debug=debug)
-        if not data["site"] in _ids:
+        _ids = utils.get_list(
+            session, api_server, headers=headers, mtype="site", debug=debug
+        )
+        if data["site"] not in _ids:
             print(
                 f"create(record, name={data['name']}): site with name={data['site']} does not exist - must be created first"
             )

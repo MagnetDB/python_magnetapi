@@ -1,0 +1,1 @@
+{"name": Ring-H1H2test", "description": "add ring from cli", "status": "in_study", "type": "ring", "material": "testmat", "design_office_reference": "HL-27-029", "geometry": ["Ring-H1H2.yaml"] }
