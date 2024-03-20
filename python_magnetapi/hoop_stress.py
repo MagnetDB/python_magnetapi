@@ -22,8 +22,8 @@ from python_magnetsetup.config import appenv
 # from txt2csv import load_files
 from python_magnetrun.MagnetRun import MagnetRun
 
-import MagnetTools.Bmap as bmap
-import MagnetTools.MagnetTools as mt
+import magnettools.Bmap as bmap
+import magnettools.magnettools as mt
 
 
 def compute(
