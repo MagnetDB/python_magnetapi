@@ -1,1 +1,1 @@
-{"name": "M18110501test", "status": "decommisioned", "design_office_reference": "lkfjdlj", "sites": ["M9_M18110501test"], "parts": ["H22121601test"]}
+{"name": "M18110501test", "type": "insert", "status": "decommisioned", "design_office_reference": "lkfjdlj", "sites": ["M9_M18110501test"], "parts": ["H22121601test"]}
