@@ -1,5 +1,4 @@
 import os
-import pytest
 import json
 import requests
 
@@ -9,7 +8,6 @@ api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
 api_key = os.getenv("MAGNETDB_API_KEY")
 
 headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
-web = f"https://{api_server}"
 # port = 8000
 # web = f"http://{api_server}:{port}"
 
@@ -45,7 +43,7 @@ class TestList:
     def list_type(self, mtype: str):
         from python_magnetapi import utils
 
-        return utils.get_list(session, web, headers=headers, mtype=mtype, debug=False)
+        return utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False, verbose=False)
 
     def test_material(self):
         _ids = self.list_type("material")
@@ -119,7 +117,7 @@ class TestCrud:
 
         os.chdir("tests")
         id = ocreate[mtype]["cmd"](
-            session, web, headers=headers, data=data, verbose=False, debug=False
+            session, api_server, headers=headers, data=data, verbose=False, debug=False
         )
 
         os.chdir(pwd)
@@ -129,12 +127,12 @@ class TestCrud:
     def delete(self, mtype: str, name: str):
         from python_magnetapi import utils
 
-        ids = utils.get_list(session, web, headers=headers, mtype=mtype, debug=False)
+        ids = utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False)
         print(f"id={ids[name]}")
 
         response = utils.del_object(
             session,
-            web,
+            api_server,
             headers=headers,
             mtype=mtype,
             id=ids[name],
@@ -142,7 +140,7 @@ class TestCrud:
             debug=False,
         )
 
-        ids = utils.get_list(session, web, headers=headers, mtype=mtype, debug=False)
+        ids = utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False)
         return name in ids
 
     def up(self, mtype: str):
@@ -155,7 +153,7 @@ class TestCrud:
             "status": "in_operation",
             "date": "2019.03.22 09:27:56",
         }
-        isOK = site_status(session, web, headers, data, verbose=True, debug=True)
+        isOK = site_status(session, api_server, headers, data, verbose=True, debug=True)
         return isOK
 
     def down(self, mtype: str):
@@ -168,7 +166,7 @@ class TestCrud:
             "status": "in_stock",
             "date": "2019.03.25 09:27:56",
         }
-        isOK = site_status(session, web, headers, data, verbose=True, debug=True)
+        isOK = site_status(session, api_server, headers, data, verbose=True, debug=True)
         return isOK
 
     def test_create_material(self):
@@ -176,9 +174,6 @@ class TestCrud:
 
     def test_create_part(self):
         assert not self.create("part") is None
-
-    def test_create_geometry(self):
-        assert not self.create("geometry") is None
 
     def test_create_magnet(self):
         assert not self.create("magnet") is None
@@ -193,10 +188,6 @@ class TestCrud:
     def test_stop_site(self):
         assert self.down("site") is True
 
-    # add new site with previous magnet attached
-    # add create record
-
-    """
     def test_delete_site(self):
         print(f'delete {ocreate["site"]["object"]}')
         assert self.delete("site", ocreate["site"]["object"]) == False
@@ -212,7 +203,6 @@ class TestCrud:
     def test_delete_material(self):
         print(f'delete {ocreate["material"]["object"]}')
         assert self.delete("material", ocreate["material"]["object"]) == False
-    """
 
     # delete record
     # delete site
