@@ -1,3 +1,9 @@
+python-magnetapi (0.0.1-2) unstable; urgency=medium
+
+  * up to git rev 1fee0bf77
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Wed, 05 Apr 2023 15:29:36 +0200
+
 python-magnetapi (0.0.1-1.1) unstable; urgency=medium
 
   * up to git rev dee84f1
