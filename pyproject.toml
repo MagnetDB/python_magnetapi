@@ -23,6 +23,15 @@ rich = "^9.11.0"
 
 
 [tool.poetry.dev-dependencies]
+pytest = "^8.2.0" 
+
+[tool.poetry.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
