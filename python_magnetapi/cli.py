@@ -175,7 +175,7 @@ def main():
     )
     parser_setup.add_argument(
         "--wd",
-        help="select directory to store setup/sumalation results",
+        help="select directory to store setup/simulation results",
         type=str,
         default=".",
     )
