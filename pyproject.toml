@@ -3,7 +3,7 @@ name = "python_magnetapi"
 version = "0.1.0"
 description = ""
 authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
-           "Remi Caumette <remicaumette@icloud.com>" 
+           "Remi Caumette <remicaumette@icloud.com>"
           ]
 
 [tool.poetry.dependencies]
@@ -16,7 +16,7 @@ scipy = "^1.14.0"
 #magnettools = {path = "/home/feelpp/magnettools-1.1.0/build/Python/dist/MagnetTools-1.0.7-py3-none-any.whl"}
 #magnettools = "^1.1.0)
 #python-magnetgeo = {path = "python_magnetsgeo"}
-python-magnetsetup = {path = "../python_magnetsetup"}
+python-magnetsetup = {path = "../python_magnetsetup", develop = true }
 #python-magnetrun = {path = "../python_magnetrun"}
 rich = "^9.11.0"
 

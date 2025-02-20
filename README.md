@@ -59,3 +59,9 @@ export MAGNETDB_API_KEY=xxx
 pytest-3 --verbose
 ```
 
+## Test inside docker container
+
+```bash
+export MAGNETDB_API_KEY=test MAGNETDB_API_SERVER=http://localhost:8000
+poetry run pytest --verbose
+```
