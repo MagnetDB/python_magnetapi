@@ -48,7 +48,9 @@ python -m python_magnetapi.cli --https create --mtype material --file data.json
 python -m python_magnetapi.cli --https delete --mtype material --name testmat2
 python -m python_magnetapi.cli --https compute --mtype magnet  --name M19061901 --flow_params
 python -m python_magnetapi.cli --https compute  --mtype part --name H15101601--hoop_stress
-python -m python_magnetapi.cli --https setup --mtype site --name M10_M19020601 --method cfpdes --static --geometry Axi --model thelec --cooling mean --current 31000 12000 100 [--wd path_to_store_setup]
+python -m python_magnetapi.cli --https setup --mtype site --name M10_M19020601 \
+   --method cfpdes --static --geometry Axi --model thelec --cooling mean --current 31000 12000 100 \
+   [--wd path_to_store_setup]
 python -m python_magnetapi.cli --https run --simu_id id [--wd path_to_store_results]
 ```
 
@@ -59,3 +61,9 @@ export MAGNETDB_API_KEY=xxx
 pytest-3 --verbose
 ```
 
+## Test inside docker container
+
+```bash
+export MAGNETDB_API_KEY=test MAGNETDB_API_SERVER=http://localhost:8000
+poetry run pytest --verbose
+```
