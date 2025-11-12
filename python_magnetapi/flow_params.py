@@ -111,7 +111,7 @@ def fit(
     return params
 
 
-def compute(session, api_server: str, headers: dict, oid: int, debug: bool = False):
+def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, debug: bool = False):
     """
     compute flow_params for a given magnet
     """
@@ -217,8 +217,8 @@ def compute(session, api_server: str, headers: dict, oid: int, debug: bool = Fal
             total = 0
             nrecords = len(records)
             ithreshold = nrecords
-            if nrecords > 20:
-                ithreshold = min(20, floor(nrecords * 0.80))
+            if nrecords > samples:
+                ithreshold = min(samples, floor(nrecords * 0.80))
             if debug:
                 print(f"site[{site['site']['name']}]: nrecords={nrecords}")
 
@@ -227,11 +227,12 @@ def compute(session, api_server: str, headers: dict, oid: int, debug: bool = Fal
 
             num_records = range(ithreshold)
             if nrecords > 20:
+                random.seed()
                 num_records = random.sample(range(0, nrecords), ithreshold)
             print(f"randomly selected records ({ithreshold}): {num_records}")
             for i in track(
                 range(ithreshold),
-                description=f"Processing records for site {site['site']['name']} (pick {ithreshold}/ {nrecords}",
+                description=f"Processing records for site {site['site']['name']} (pick {ithreshold}/ {nrecords})",
             ):
                 f = records[num_records[i]]
                 # print(f'f={f}')

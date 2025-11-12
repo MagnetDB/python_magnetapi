@@ -234,6 +234,9 @@ def main():
     parser_compute.add_argument(
         "--hoop_stress", help="activate hoop stress history", action="store_true"
     )
+    parser_compute.add_argument(
+        "--samples", help="specify number of samples to consider", type=int, default=20
+    )
 
     # get args
     args = parser.parse_args()
@@ -632,6 +635,7 @@ def main():
                         web,
                         headers=headers,
                         oid=ids[args.name],
+                        samples = args.samples,
                         debug=args.debug,
                     )
                 else:
