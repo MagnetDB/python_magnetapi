@@ -1,41 +1,84 @@
-[tool.poetry]
-name = "python_magnetapi"
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-magnetapi"
 version = "0.1.0"
-description = ""
-authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
-           "Remi Caumette <remicaumette@icloud.com>"
-          ]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-requests = "^2.32.3"
-param = "^1.12.0"
-pandas = "^2.2.1"
-numpy = "^2.2.2"
-scipy = "^1.14.0"
-#magnettools = {path = "/home/feelpp/magnettools-1.1.0/build/Python/dist/MagnetTools-1.0.7-py3-none-any.whl"}
-#magnettools = "^1.1.0)
-#python-magnetgeo = {path = "python_magnetsgeo"}
-python-magnetsetup = {path = "../python_magnetsetup", develop = true }
-#python-magnetrun = {path = "../python_magnetrun"}
-rich = "^9.11.0"
-
-
-
-[tool.poetry.dev-dependencies]
-pytest = "^8.2.0" 
-
-[tool.poetry.pytest.ini_options]
-filterwarnings = [
-    "error",
-    "ignore::UserWarning",
-    # note the use of single quote below to denote "raw" strings in TOML
-    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+description = "Python CLI for magnetDB - utilities to interact with MagnetDB"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Christophe Trophime", email = "christophe.trophime@lncmi.cnrs.fr"},
+    {name = "Remi Caumette", email = "remicaumette@icloud.com"}
+]
+maintainers = [
+    {name = "Christophe Trophime", email = "christophe.trophime@lncmi.cnrs.fr"}
+]
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
+dependencies = [
+    "requests>=2.32.3",
+    "pandas>=2.2.1",
+    "numpy>=2.2.1",
+    "scipy>=1.14.1",
+    "param>=1.12.0",
+    "rich>=9.11.0",
+    "python-magnetsetup",
+]
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov",
+]
+doc = [
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme",
+]
+
+[project.scripts]
+python_magnetapi = "python_magnetapi.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Trophime/python_magnetapi"
+Repository = "https://github.com/Trophime/python_magnetapi"
+Documentation = "https://github.com/Trophime/python_magnetapi"
+"Bug Tracker" = "https://github.com/Trophime/python_magnetapi/issues"
+
+[tool.setuptools]
+packages = ["python_magnetapi"]
+
+[tool.setuptools.package-data]
+python_magnetapi = ["py.typed"]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["python_magnetapi"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
