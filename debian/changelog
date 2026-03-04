@@ -1,3 +1,23 @@
+python-magnetapi (0.1.0-1) unstable; urgency=medium
+
+  * New upstream release (0.1.0)
+  * Modernize Debian packaging infrastructure:
+    - Update debhelper-compat from 12 to 13
+    - Add explicit pybuild-plugin-pyproject support
+    - Remove legacy dh-python and python3-setuptools dependencies
+    - Update Standards-Version to 4.7.0
+    - Simplify debian/rules using modern pybuild
+    - Remove obsolete --with python3 flag
+  * Fix packaging metadata:
+    - Correct Homepage URL to python-magnetapi repository
+    - Add VCS fields (Vcs-Browser, Vcs-Git)
+    - Change Section from 'unknown' to 'python'
+    - Improve package descriptions
+  * Align version with pyproject.toml (0.1.0)
+  * Update to PEP 517/518 compliant build system
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Wed, 28 Jan 2026 14:00:00 +0100
+
 python-magnetapi (0.0.1-2) unstable; urgency=medium
 
   * up to git rev 1fee0bf77

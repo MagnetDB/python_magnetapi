@@ -1,27 +1,35 @@
 Source: python-magnetapi
-Section: unknown
+Section: python
 Priority: optional
 Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
-Build-Depends: debhelper-compat (= 12),
- dh-python,
+Build-Depends: debhelper-compat (= 13),
+ pybuild-plugin-pyproject,
  python3-setuptools,
  python3-all,
  python3-magnetrun,
  python3-magnetsetup,
  python3-rich
-Standards-Version: 4.5.1
-Homepage: https://github.com/Trophime/python_magnetrun
-#Vcs-Browser: https://salsa.debian.org/debian/python-magnetrun
-#Vcs-Git: https://salsa.debian.org/debian/python-magnetrun.git
+Standards-Version: 4.7.0
+Homepage: https://github.com/MagnetDB/python_magnetapi
+#Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+#Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
 #Testsuite: autopkgtest-pkg-python
 Rules-Requires-Root: no
 
 Package: python3-magnetapi
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}
-Suggests: python-magnetrun-doc
-Description: Python Cli for magnetDB (Python 3)
- Python MagnetApi provides utils to interact with MagnetDB
+Description: Python CLI for MagnetDB
+ Python MagnetAPI provides utilities and a command-line interface to interact
+ with MagnetDB, a database system for managing magnetic materials, parts,
+ magnets, sites, and experimental records.
+ .
+ This package includes:
+  - API utilities for MagnetDB operations (CRUD)
+  - CLI tools for materials, parts, magnets, sites, and records
+  - Simulation setup and execution support
+  - Flow parameter computation and analysis
+  - Hoop stress history calculation
  .
  This package installs the library for Python 3.
 
@@ -29,7 +37,7 @@ Package: python-magnetapi-doc
 Architecture: all
 Section: doc
 Depends: ${sphinxdoc:Depends}, ${misc:Depends}
-Description: Python Cli for magnetDB (common documentation)
- Python MagnetApi provides utils to interact with MagnetDB
+Description: Documentation for Python MagnetAPI
+ Python MagnetAPI provides utilities to interact with MagnetDB.
  .
  This is the common documentation package.
