@@ -32,7 +32,9 @@ dependencies = [
     "scipy>=1.14.1",
     "param>=1.12.0",
     "rich>=9.11.0",
-    "python-magnetsetup",
+    "python3-magnetsetup",
+    "python3-magnetcooling",
+    "python3-magnettools"
 ]
 
 [project.optional-dependencies]
