@@ -14,6 +14,7 @@ from math import floor
 import datetime
 
 import json
+import random
 import pandas as pd
 from rich.progress import track
 from . import utils
@@ -111,7 +112,7 @@ def fit(
     return params
 
 
-def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, debug: bool = False):
+def compute(session, api_server: str, headers: dict, oid: int, samples: int = 20, debug: bool = False):
     """
     compute flow_params for a given magnet
     """
@@ -223,12 +224,10 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
                 print(f"site[{site['site']['name']}]: nrecords={nrecords}")
 
             housing = None
-            import random
 
             num_records = range(ithreshold)
-            if nrecords > 20:
-                random.seed()
-                num_records = random.sample(range(0, nrecords), ithreshold)
+            if nrecords > samples:
+                num_records = random.sample(range(nrecords), ithreshold)
             print(f"randomly selected records ({ithreshold}): {num_records}")
             for i in track(
                 range(ithreshold),
