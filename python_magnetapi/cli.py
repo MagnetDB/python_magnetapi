@@ -14,6 +14,13 @@ import requests.exceptions
 import pandas as pd
 
 from . import utils
+from .exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ResourceNotFoundError,
+    ValidationError,
+    MagnetAPIException,
+)
 
 api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
 api_key = os.getenv("MAGNETDB_API_KEY")
@@ -250,9 +257,17 @@ def main():
     args = parser.parse_args()
     print(f"args: {args}")
 
+    # Validate API key before proceeding
+    api_key = os.getenv("MAGNETDB_API_KEY")
+    if not api_key:
+        raise AuthenticationError(
+            "API key not found. Please set the MAGNETDB_API_KEY environment variable. "
+            "You can obtain your API key from your profile page on MagnetDB."
+        )
+
     # main
     otype = args.mtype
-    headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
+    headers = {"Authorization": api_key}
     web = f"http://{args.server}:{args.port}"
     verify = True
     if args.https:
@@ -266,33 +281,53 @@ def main():
         # print(f"done (r={r}, isOk={r.status_code == requests.codes.ok}", flush=True)
         if not r.status_code == requests.codes.ok:
             response = r.json()
-            if "detail" in response and response["detail"] == "Forbidden.":
-                raise RuntimeError(
-                    f"{args.server} : wrong credentials - check MAGNETDB_API_KEY"
+            if r.status_code == 401:
+                raise AuthenticationError(
+                    "Authentication failed. Invalid or expired API key.",
+                    status_code=401,
+                    server=args.server,
                 )
-            raise RuntimeError(f"{args.server} : unknown reason")
+            elif "detail" in response and response["detail"] == "Forbidden.":
+                raise AuthorizationError(
+                    f"Access forbidden. Your API key does not have permission to access {otype}s.",
+                    status_code=r.status_code,
+                    server=args.server,
+                )
+            else:
+                raise MagnetAPIException(
+                    f"API request failed: {response.get('detail', 'Unknown error')}",
+                    status_code=r.status_code,
+                    server=args.server,
+                )
         # print(f"s.verify={s.verify}")
 
         if args.command == "list":
             # Parse filters from command line arguments
             filter_dict = {}
-            if hasattr(args, 'filters') and args.filters:
+            if hasattr(args, "filters") and args.filters:
                 for filter_str in args.filters:
-                    if '=' in filter_str:
-                        key, value = filter_str.split('=', 1)
+                    if "=" in filter_str:
+                        key, value = filter_str.split("=", 1)
                         filter_dict[key.strip()] = value.strip()
                     else:
-                        print(f"Warning: Invalid filter format '{filter_str}'. Expected KEY=VALUE")
-            
+                        print(
+                            f"Warning: Invalid filter format '{filter_str}'. Expected KEY=VALUE"
+                        )
+
             ids = utils.get_list(
-                s, web, headers=headers, mtype=otype, filters=filter_dict if filter_dict else None, debug=args.debug
+                s,
+                web,
+                headers=headers,
+                mtype=otype,
+                filters=filter_dict if filter_dict else None,
+                debug=args.debug,
             )
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
-            
+
             # Convert to DataFrame for better display
             data = [{"Name": name, "ID": id_value} for name, id_value in ids.items()]
             df = pd.DataFrame(data)
-            
+
             # Display as a formatted table
             print(df.to_string(index=False))
 
@@ -311,8 +346,11 @@ def main():
                 )
                 print(f"{args.name}:\n{json.dumps(response, indent=4)}")
             else:
-                raise RuntimeError(
-                    f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
+                raise ResourceNotFoundError(
+                    f"Object '{args.name}' not found in {args.mtype} collection",
+                    object_name=args.name,
+                    object_type=args.mtype,
+                    server=args.server,
                 )
 
         if args.command == "create":
@@ -368,14 +406,19 @@ def main():
                     debug=args.debug,
                 )
             else:
-                raise RuntimeError(
-                    f"{args.server} : cannot found {args.name} in {args.mtype.upper()} objects"
+                raise ResourceNotFoundError(
+                    f"Object '{args.name}' not found in {args.mtype} collection",
+                    object_name=args.name,
+                    object_type=args.mtype,
+                    server=args.server,
                 )
 
         if args.command == "setup":
             if otype not in ["site", "magnet"]:
-                raise RuntimeError(
-                    f"unexpected type {args.mtype} in run subcommand - expect mtype=site|magnet"
+                raise ValidationError(
+                    f"Unexpected type '{args.mtype}' for setup command. Expected: 'site' or 'magnet'",
+                    provided_type=args.mtype,
+                    expected_types=["site", "magnet"],
                 )
 
             # Check consistant method and model
@@ -661,7 +704,7 @@ def main():
                         web,
                         headers=headers,
                         oid=ids[args.name],
-                        samples = args.samples,
+                        samples=args.samples,
                         debug=args.debug,
                     )
                 else:

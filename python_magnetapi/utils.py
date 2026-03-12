@@ -5,6 +5,14 @@ Utils for interaction with MagnetDB
 import json
 import re
 
+from .exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ResourceConflictError,
+    ServerError,
+    MagnetAPIException,
+)
+
 
 def get_list(
     session,
@@ -161,10 +169,33 @@ def create_object(
 
     response = r.json()
     if r.status_code != 200:
-        print(
-            f"create_object: api_server={web}, mtype={mtype}, response={response['detail']}"
-        )
-        return None
+        detail = response.get("detail", "Unknown error")
+        if r.status_code == 401:
+            raise AuthenticationError(
+                f"Authentication failed while creating {mtype}",
+                status_code=401,
+                url=web,
+            )
+        elif r.status_code == 403:
+            raise AuthorizationError(
+                f"Not authorized to create {mtype} objects", status_code=403, url=web
+            )
+        elif r.status_code == 409:
+            raise ResourceConflictError(
+                f"Conflict while creating {mtype}: {detail}", status_code=409, url=web
+            )
+        elif r.status_code >= 500:
+            raise ServerError(
+                f"Server error while creating {mtype}: {detail}",
+                status_code=r.status_code,
+                url=web,
+            )
+        else:
+            raise MagnetAPIException(
+                f"Failed to create {mtype}: {detail}",
+                status_code=r.status_code,
+                url=web,
+            )
 
     if debug:
         print(
@@ -490,10 +521,37 @@ def post_json(
     r = session.post(f"{api_server}/api/{mtype}s", json=data, headers=headers)
     response = r.json()
     if r.status_code != 200:
-        print(
-            f"post_json: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
-        )
-        return None
+        detail = response.get("detail", "Unknown error")
+        if r.status_code == 401:
+            raise AuthenticationError(
+                f"Authentication failed while creating {mtype}",
+                status_code=401,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        elif r.status_code == 403:
+            raise AuthorizationError(
+                f"Not authorized to create {mtype} objects",
+                status_code=403,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        elif r.status_code == 409:
+            raise ResourceConflictError(
+                f"Conflict while creating {mtype}: {detail}",
+                status_code=409,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        elif r.status_code >= 500:
+            raise ServerError(
+                f"Server error while creating {mtype}: {detail}",
+                status_code=r.status_code,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        else:
+            raise MagnetAPIException(
+                f"Failed to create {mtype}: {detail}",
+                status_code=r.status_code,
+                url=f"{api_server}/api/{mtype}s",
+            )
 
     if debug:
         print(f"post_json: response={response}")
@@ -521,10 +579,31 @@ def post_file(
     response = r.json()
     print(f"post_file: response={response}")
     if r.status_code != 200:
-        print(
-            f"post_file: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
-        )
-        return None
+        detail = response.get("detail", "Unknown error")
+        if r.status_code == 401:
+            raise AuthenticationError(
+                f"Authentication failed while uploading file for {mtype}",
+                status_code=401,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        elif r.status_code == 403:
+            raise AuthorizationError(
+                f"Not authorized to upload files for {mtype} objects",
+                status_code=403,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        elif r.status_code >= 500:
+            raise ServerError(
+                f"Server error while uploading file for {mtype}: {detail}",
+                status_code=r.status_code,
+                url=f"{api_server}/api/{mtype}s",
+            )
+        else:
+            raise MagnetAPIException(
+                f"Failed to upload file for {mtype}: {detail}",
+                status_code=r.status_code,
+                url=f"{api_server}/api/{mtype}s",
+            )
 
     if debug:
         print(f"post_file: response={response}")

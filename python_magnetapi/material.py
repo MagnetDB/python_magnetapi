@@ -3,6 +3,7 @@ create material
 """
 
 from . import utils
+from .exceptions import ResourceConflictError
 
 
 def create(
@@ -21,15 +22,15 @@ def create(
         session, api_server, headers=headers, mtype="material", debug=debug
     )
     if data["name"] in ids:
-        print(f"material with name={data['name']} already exists")
-        return None
-
-    else:
-        response = utils.post_json(
-            session, api_server, headers, data, "material", verbose, debug
+        raise ResourceConflictError(
+            f"Material '{data['name']}' already exists",
+            object_name=data["name"],
+            object_type="material",
+            existing_id=ids[data["name"]],
         )
-        if response is None:
-            print(f"material {data['name']} failed to be created")
-            return None
-        print(f"material {data['name']} created with id={response['id']}")
-        return response["id"]
+
+    response = utils.post_json(
+        session, api_server, headers, data, "material", verbose, debug
+    )
+    print(f"material {data['name']} created with id={response['id']}")
+    return response["id"]
