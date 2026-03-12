@@ -1,3 +1,26 @@
+python-magnetapi (0.1.0-1) unstable; urgency=medium
+
+  * New upstream release 0.1.0
+  * Modernize Debian packaging:
+    - Upgrade to debhelper-compat 13
+    - Update Standards-Version to 4.6.2
+    - Change Section from unknown to python
+    - Update Homepage URL to correct repository
+    - Add all required runtime dependencies
+    - Remove obsolete python3-setuptools build dependency
+  * Major improvements in upstream:
+    - Complete Sphinx documentation (1500+ lines)
+    - Performance optimization of hoop_stress module
+    - Add parallel processing capability (hoop_stress_parallel)
+    - Modernize flow_params to use python3-magnetcooling
+    - Add comprehensive demo scripts
+    - Migrate to pure pyproject.toml (PEP 517/518)
+    - Expand README with detailed installation and usage
+    - Add python3-magnetcooling and python3-magnettools dependencies
+  * Update package description to reflect library+CLI nature
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Wed, 12 Mar 2026 14:00:00 +0100
+
 python-magnetapi (0.0.1-2) unstable; urgency=medium
 
   * up to git rev 1fee0bf77
