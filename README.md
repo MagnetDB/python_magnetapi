@@ -24,7 +24,7 @@ Python CLI and library for interacting with MagnetDB — a database for magnetic
 ### Option 1: Install within a Python virtual environment (recommended for development)
 
 ```bash
-git clone https://github.com/Trophime/python_magnetapi.git
+git clone https://github.com/MagnetDB/python_magnetapi.git
 cd python_magnetapi
 
 # Create and activate a virtual environment
@@ -137,7 +137,7 @@ apptainer exec magnetapi.sif python -m python_magnetapi.cli --help
 
 ## Pre-requisites
 
-### MagnetDB server
+### MagnetDB client
 
 Ensure the MagnetDB server is accessible. Add the following entries to `/etc/hosts` with the appropriate IP address:
 
@@ -310,5 +310,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Links
 
-- **Repository**: <https://github.com/Trophime/python_magnetapi>
-- **Bug Tracker**: <https://github.com/Trophime/python_magnetapi/issues>
+- **Repository**: <https://github.com/MagnetDB/python_magnetapi>
+- **Bug Tracker**: <https://github.com/MagnetDB/python_magnetapi/issues>
