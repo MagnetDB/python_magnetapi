@@ -186,10 +186,57 @@ python -m python_magnetapi.cli --help
 
 ### Examples
 
+#### Listing objects
+
+List commands now display results as formatted tables:
+
 ```bash
-# List all materials
+# List all materials (displays as a formatted table)
 python -m python_magnetapi.cli --https list --mtype material
 
+# List all parts
+python -m python_magnetapi.cli --https list --mtype part
+
+# List all magnets
+python -m python_magnetapi.cli --https list --mtype magnet
+
+# List all sites
+python -m python_magnetapi.cli --https list --mtype site
+```
+
+**Example output:**
+```
+PART: found 53 items
+           Name  ID
+       HL-34_H1   1
+       HL-34_H2   2
+      Ring-H1H2   3
+           tore   4
+          tore1   5
+...
+```
+
+#### Filtering results
+
+Filter objects by their attributes using `--filter KEY=VALUE`. Multiple filters can be combined:
+
+```bash
+# Filter parts by a single attribute
+python -m python_magnetapi.cli --https list --mtype part --filter status=active
+
+# Filter with multiple attributes (all must match)
+python -m python_magnetapi.cli --https list --mtype part --filter status=active --filter type=helix
+
+# Filter magnets by site
+python -m python_magnetapi.cli --https list --mtype magnet --filter site=grenoble
+
+# Filter materials by property
+python -m python_magnetapi.cli --https list --mtype material --filter material_type=copper
+```
+
+#### Viewing and creating objects
+
+```bash
 # View a specific material
 python -m python_magnetapi.cli --https view --mtype material --name testmat2
 
@@ -201,13 +248,21 @@ python -m python_magnetapi.cli --https create --mtype material --file data.json
 
 # Delete a material
 python -m python_magnetapi.cli --https delete --mtype material --name testmat2
+```
 
+#### Computing derived quantities
+
+```bash
 # Compute flow parameters for a magnet
 python -m python_magnetapi.cli --https compute --mtype magnet --name M19061901 --flow_params
 
 # Compute hoop stress for a part
 python -m python_magnetapi.cli --https compute --mtype part --name H15101601 --hoop_stress
+```
 
+#### Setting up and running simulations
+
+```bash
 # Setup a simulation
 python -m python_magnetapi.cli --https setup --mtype site --name M10_M19020601 \
    --method cfpdes --static --geometry Axi --model thelec --cooling mean \
@@ -229,10 +284,22 @@ web = "https://api.magnetdb.local"
 
 with requests.Session() as s:
     # List all magnets
-    ids = utils.get_list(s, web, headers=headers, mtype="magnets")
+    ids = utils.get_list(s, web, headers=headers, mtype="magnet")
+    
+    # List with filters (single attribute)
+    active_parts = utils.get_list(
+        s, web, headers=headers, mtype="part",
+        filters={"status": "active"}
+    )
+    
+    # List with multiple filters (all must match)
+    filtered_magnets = utils.get_list(
+        s, web, headers=headers, mtype="magnet",
+        filters={"site": "grenoble", "status": "operational"}
+    )
     
     # Get a specific object
-    obj = utils.get_object(s, web, headers=headers, mtype="magnets", id=ids["M19061901"])
+    obj = utils.get_object(s, web, headers=headers, mtype="magnet", id=ids["M19061901"])
 ```
 
 ## Testing
