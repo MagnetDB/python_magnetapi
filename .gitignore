@@ -91,3 +91,4 @@ tmp
 *.tar.gz
 M*.json
 H*.json
+*.old
