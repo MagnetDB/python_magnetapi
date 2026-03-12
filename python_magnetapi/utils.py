@@ -11,14 +11,30 @@ def get_list(
     api_server: str,
     headers: dict,
     mtype: str = "magnets",
+    filters: dict = None,
     verbose: bool = False,
     debug: bool = False,
 ) -> dict:
     """
-    return list of ids for selected tpye
+    return list of ids for selected type
+
+    Args:
+        session: requests session
+        api_server: API server URL
+        headers: request headers
+        mtype: object type (magnet, part, site, etc.)
+        filters: dict of attribute:value pairs to filter results
+                 e.g., {"status": "active", "type": "helix"}
+        verbose: enable verbose output
+        debug: enable debug output
+
+    Returns:
+        dict: mapping of object names to IDs (filtered if filters provided)
     """
     if verbose:
         print(f"get_list: api_server={api_server}, mtype={mtype}")
+        if filters:
+            print(f"get_list: filters={filters}")
 
     # loop over pages
     objects = dict()
@@ -71,6 +87,19 @@ def get_list(
             break
 
     for object in objects:
+        # Apply filters if provided
+        if filters:
+            matches = True
+            for attr, value in filters.items():
+                # Check if attribute exists and matches the filter value
+                if attr not in objects[object] or str(objects[object][attr]) != str(
+                    value
+                ):
+                    matches = False
+                    break
+            if not matches:
+                continue
+
         if debug:
             print(
                 f"{mtype.upper()}: {objects[object]['name']} (id:{objects[object]['id']})"

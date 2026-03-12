@@ -11,6 +11,7 @@ import argparse
 from time import sleep
 import requests
 import requests.exceptions
+import pandas as pd
 
 from . import utils
 
@@ -56,6 +57,13 @@ def main():
             "simulation",
         ],
         default="magnet",
+    )
+    parser_list.add_argument(
+        "--filter",
+        help="filter results by attribute (format: key=value). Can be used multiple times.",
+        action="append",
+        dest="filters",
+        metavar="KEY=VALUE",
     )
 
     # view subcommand
@@ -266,10 +274,27 @@ def main():
         # print(f"s.verify={s.verify}")
 
         if args.command == "list":
-            ids = utils.get_list(s, web, headers=headers, mtype=otype, debug=args.debug)
+            # Parse filters from command line arguments
+            filter_dict = {}
+            if hasattr(args, 'filters') and args.filters:
+                for filter_str in args.filters:
+                    if '=' in filter_str:
+                        key, value = filter_str.split('=', 1)
+                        filter_dict[key.strip()] = value.strip()
+                    else:
+                        print(f"Warning: Invalid filter format '{filter_str}'. Expected KEY=VALUE")
+            
+            ids = utils.get_list(
+                s, web, headers=headers, mtype=otype, filters=filter_dict if filter_dict else None, debug=args.debug
+            )
             print(f"{args.mtype.upper()}: found {len([*ids])} items")
-            for obj in ids:
-                print(f"{args.mtype.upper()}: {obj}, id={ids[obj]}")
+            
+            # Convert to DataFrame for better display
+            data = [{"Name": name, "ID": id_value} for name, id_value in ids.items()]
+            df = pd.DataFrame(data)
+            
+            # Display as a formatted table
+            print(df.to_string(index=False))
 
         if args.command == "view":
             # add a filter for view
@@ -277,6 +302,7 @@ def main():
             print(f"view: ids={ids}")
             if args.name in ids:
                 response = utils.get_object(
+                    s,
                     web,
                     headers=headers,
                     mtype=otype,
