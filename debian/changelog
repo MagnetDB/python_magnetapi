@@ -1,3 +1,9 @@
+python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
+
+  * rebuild for trixie
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Tue, 17 Mar 2026 09:03:13 +0100
+
 python-magnetapi (0.1.0-1) unstable; urgency=medium
 
   * New upstream release 0.1.0
