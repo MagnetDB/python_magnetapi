@@ -5,6 +5,7 @@ Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 Build-Depends: debhelper-compat (= 13),
  dh-python,
  python3-all,
+ pybuild-plugin-pyproject,
  python3-requests,
  python3-pandas,
  python3-numpy,
