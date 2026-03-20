@@ -100,13 +100,12 @@ class _ObjectCache:
     def __init__(self):
         self._store: dict[tuple, dict] = {}
 
-    def get_object(self, session, api_server, auth_headers, mtype, obj_id,
-                   verbose=False, debug=False) -> dict:
+    def get_object(self, session, api_server, auth_headers, mtype, obj_id) -> dict:
         key = (mtype, obj_id)
         if key not in self._store:
             self._store[key] = utils.get_object(
                 session, api_server, headers=auth_headers,
-                mtype=mtype, id=obj_id, verbose=verbose, debug=debug,
+                mtype=mtype, id=obj_id,
             )
         return self._store[key]
 
@@ -337,7 +336,7 @@ def compute(
     cache = _ObjectCache()
 
     part = cache.get_object(
-        session, api_server, auth_headers, "part", oid, verbose=verbose, debug=debug
+        session, api_server, auth_headers, "part", oid
     )
     if debug:
         print(f"part: {part}")
@@ -357,7 +356,7 @@ def compute(
 
     sites = utils.get_history(
         session, api_server, auth_headers, oid,
-        mtype=mtype, otype="site", debug=debug,
+        mtype=mtype, otype="site",
     )
     if not sites:
         print("  No sites found – nothing to process.")
@@ -380,14 +379,13 @@ def compute(
         for site_stub in track(sites, description="Sites"):
             site = cache.get_object(
                 session, api_server, auth_headers, "site", site_stub["id"],
-                verbose=verbose, debug=debug,
             )
             site_name = site.get("name", str(site["id"]))
 
             # ── geometry setup ──────────────────────────────────────────────
             config_data = utils.get_data(
                 session, api_server, auth_headers,
-                oid=site["id"], mtype="site", debug=debug,
+                oid=site["id"], mtype="site",
             )
 
             # pnames: part_name → positional label (H1, B2, …) — local to this site
@@ -397,7 +395,6 @@ def compute(
                 magnet_id = magnet_stub["magnet_id"]
                 magnet = cache.get_object(
                     session, api_server, auth_headers, "magnet", magnet_id,
-                    verbose=verbose, debug=debug,
                 )
 
                 # download magnet geometry yaml
@@ -407,7 +404,6 @@ def compute(
                         session, api_server, auth_headers,
                         geom_data["id"],
                         wd=os.path.join(data_dir, "geometries"),
-                        debug=debug,
                     )
 
                 # download part geometries and build pnames
@@ -418,7 +414,6 @@ def compute(
                         continue
                     _pobj = cache.get_object(
                         session, api_server, auth_headers, "part", _pid,
-                        verbose=verbose, debug=debug,
                     )
                     for geom in _pobj.get("geometries", []):
                         attach = geom.get("attachment", {})
@@ -427,7 +422,6 @@ def compute(
                                 session, api_server, auth_headers,
                                 attach["id"],
                                 wd=os.path.join(data_dir, "geometries"),
-                                debug=debug,
                             )
                     type_key = _ptype.upper()[0]  # H / B / S
                     num_by_type[type_key] += 1
@@ -491,7 +485,6 @@ def compute(
                     session, api_server, auth_headers,
                     attach,
                     wd=tempdir,
-                    debug=debug,
                 )
                 if filename is None:
                     continue

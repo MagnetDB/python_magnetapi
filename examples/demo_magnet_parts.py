@@ -24,6 +24,7 @@ Optional flags
 import os
 import sys
 import argparse
+import enum
 
 import requests
 import urllib3
@@ -31,11 +32,22 @@ from rich.console import Console
 from rich.table import Table
 
 from python_magnetapi import utils
+from python_magnetapi.cli.parser import add_server_arguments
+
+
+class PartType(str, enum.Enum):
+    """Part types as defined in MagnetDB."""
+    HELIX  = "helix"
+    BITTER = "bitter"
+    SUPRA  = "supra"
+    RING   = "ring"
+    SCREEN = "screen"
+    LEAD   = "lead"
 
 
 def get_magnet_id(session, web: str, headers: dict, magnet_name: str, debug: bool) -> int:
     """Resolve a magnet name to its numeric id."""
-    ids = utils.get_list(session, web, headers=headers, mtype="magnet", debug=debug)
+    ids = utils.get_list(session, web, headers=headers, mtype="magnet")
     if magnet_name not in ids:
         available = sorted(ids.keys())
         print(
@@ -47,16 +59,16 @@ def get_magnet_id(session, web: str, headers: dict, magnet_name: str, debug: boo
 
 
 def main():
-    api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
-
     parser = argparse.ArgumentParser(description="Show parts of a magnet")
     parser.add_argument("--magnet", required=True, help="Magnet name to inspect")
-    parser.add_argument("--server", default=api_server, help="API server hostname")
-    parser.add_argument("--port",   type=int, default=8000, help="Port (HTTP only)")
-    parser.add_argument("--https",     action="store_true", help="Use HTTPS")
-    parser.add_argument("--no-verify", action="store_true",
-                        help="Skip TLS certificate verification (self-signed certs)")
-    parser.add_argument("--debug",  action="store_true", help="Verbose API output")
+    parser.add_argument(
+        "--type",
+        type=PartType,
+        choices=list(PartType),
+        default=None,
+        help="Filter parts by type (default: all types)",
+    )
+    add_server_arguments(parser)
     args = parser.parse_args()
 
     web = (
@@ -82,7 +94,7 @@ def main():
         # resolve magnet name → id
         magnet_id = get_magnet_id(session, web, headers, args.magnet, args.debug)
         magnet = utils.get_object(
-            session, web, headers=headers, mtype="magnet", id=magnet_id, debug=args.debug
+            session, web, headers=headers, mtype="magnet", id=magnet_id
         )
 
         console.print(f"\n[bold]Magnet:[/bold] {magnet.get('name')}  (id={magnet_id})")
@@ -90,15 +102,20 @@ def main():
 
         # fetch parts via GET /api/magnets/{id}/parts
         parts = utils.get_parts_for_magnet(
-            session, web, headers, magnet_id, debug=args.debug
+            session, web, headers, magnet_id
         )
+
+        if args.type is not None:
+            parts = [p for p in parts if p.get("type") == args.type.value]
 
         if not parts:
             console.print("[yellow]No parts found for this magnet.[/yellow]")
             return
 
-        # build table
-        table = Table(title=f"Parts of magnet '{args.magnet}'")
+        title = f"Parts of magnet '{args.magnet}'"
+        if args.type is not None:
+            title += f" (type={args.type.value})"
+        table = Table(title=title)
         table.add_column("Part name",    style="cyan",  no_wrap=True)
         table.add_column("Type",         style="white")
         table.add_column("Status",       style="white")
@@ -110,7 +127,7 @@ def main():
             if material_id is not None:
                 mat = utils.get_object(
                     session, web, headers=headers, mtype="material",
-                    id=material_id, debug=args.debug,
+                    id=material_id,
                 )
                 material_name = mat.get("name", str(material_id)) if mat else str(material_id)
             else:

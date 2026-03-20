@@ -97,7 +97,6 @@ class ComputeCommand(BaseCommand):
             context.headers,
             oid=obj["id"],
             mtype=args.mtype,
-            debug=context.debug,
         )
 
     def _compute_flow_params(
@@ -121,7 +120,6 @@ class ComputeCommand(BaseCommand):
             headers=context.headers,
             oid=obj["id"],
             samples=args.samples,
-            debug=context.debug,
         )
 
     def _compute_hoop_stress(
@@ -145,5 +143,4 @@ class ComputeCommand(BaseCommand):
             headers=context.headers,
             mtype=args.mtype,
             oid=obj["id"],
-            debug=context.debug,
         )

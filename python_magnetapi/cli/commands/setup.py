@@ -172,8 +172,6 @@ class SetupCommand(BaseCommand):
             headers=context.headers,
             mtype="simulation",
             data=sim_data,
-            verbose=True,
-            debug=context.debug,
         )
         if simu_id is None:
             raise RuntimeError(
@@ -193,7 +191,6 @@ class SetupCommand(BaseCommand):
                 context.headers,
                 simu_id,
                 mtype="simulation",
-                debug=context.debug,
             )
             if simulation["setup_status"] in ["failed", "done"]:
                 break
@@ -211,7 +208,6 @@ class SetupCommand(BaseCommand):
             headers=context.headers,
             attach=setup_arch_id,
             wd=args.wd,
-            debug=context.debug,
         )
         print(f"{setup_filename} downloaded")
         print(f'simulation {simulation["id"]} setup done')

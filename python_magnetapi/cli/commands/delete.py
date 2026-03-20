@@ -60,8 +60,6 @@ class DeleteCommand(BaseCommand):
             headers=context.headers,
             mtype=args.mtype,
             id=ids[args.name],
-            verbose=True,
-            debug=context.debug,
         )
 
         return 0

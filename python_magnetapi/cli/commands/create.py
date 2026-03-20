@@ -81,8 +81,6 @@ class CreateCommand(BaseCommand):
             context.web,
             headers=context.headers,
             data=data,
-            verbose=True,
-            debug=context.debug,
         )
 
         if obj_id is None:

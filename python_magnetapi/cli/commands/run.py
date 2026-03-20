@@ -70,7 +70,6 @@ class RunCommand(BaseCommand):
             context.headers,
             args.simu_id,
             mtype="simulation",
-            debug=context.debug,
         )
         if simu is None:
             raise RuntimeError(
@@ -83,7 +82,6 @@ class RunCommand(BaseCommand):
             context.web,
             headers=context.headers,
             mtype="server",
-            debug=context.debug,
         )
         if args.compute_server not in server_ids:
             raise RuntimeError(
@@ -105,7 +103,6 @@ class RunCommand(BaseCommand):
                 context.headers,
                 args.simu_id,
                 mtype="simulation",
-                debug=context.debug,
             )
             if simulation["status"] in ["failed", "done"]:
                 break
@@ -123,7 +120,6 @@ class RunCommand(BaseCommand):
             headers=context.headers,
             attach=simu_arch_id,
             wd=args.wd,
-            debug=context.debug,
         )
         print(f"{simu_filename} downloaded")
         print(f'simulation {simulation["id"]} done')

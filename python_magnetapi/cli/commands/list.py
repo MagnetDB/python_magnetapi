@@ -62,7 +62,6 @@ class ListCommand(BaseCommand):
             headers=context.headers,
             mtype=args.mtype,
             filters=filter_dict if filter_dict else None,
-            debug=context.debug,
         )
         print(f"{args.mtype.upper()}: found {len(ids)} items")
 

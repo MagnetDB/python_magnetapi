@@ -10,6 +10,7 @@ from .parser import create_parser
 from .context import CLIContext
 from .commands import COMMANDS
 from ..exceptions import MagnetAPIException, AuthenticationError
+from ..utils import setup_logging
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -28,8 +29,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.print_help()
         return 1
 
-    if args.debug:
-        print(f"args: {args}")
+    log_level = "DEBUG" if args.debug else args.log_level
+    setup_logging(level=log_level, log_file=args.log_file)
 
     api_key = os.getenv("MAGNETDB_API_KEY")
     if not api_key:

@@ -65,7 +65,7 @@ def _fmt(obj: dict) -> str:
 
 def get_part_id(session, web: str, headers: dict, part_name: str, debug: bool) -> int:
     """Resolve a part name to its numeric id."""
-    ids = utils.get_list(session, web, headers=headers, mtype="part", debug=debug)
+    ids = utils.get_list(session, web, headers=headers, mtype="part")
     if part_name not in ids:
         available = sorted(ids.keys())
         print(
@@ -105,7 +105,7 @@ def get_magnets_for_part(
             continue
         seen.add(mid)
         magnet = utils.get_object(
-            session, web, headers=headers, mtype="magnet", id=mid, debug=debug
+            session, web, headers=headers, mtype="magnet", id=mid
         )
         if magnet:
             magnets.append(magnet)
@@ -121,7 +121,7 @@ def get_sites_for_magnet(
     Return every site that hosted *magnet_id*, with full site objects.
     """
     join_rows = utils.get_history(
-        session, web, headers, magnet_id, mtype="magnet", otype="site", debug=debug
+        session, web, headers, magnet_id, mtype="magnet", otype="site"
     )
     if not join_rows:
         return []
@@ -135,7 +135,7 @@ def get_sites_for_magnet(
             continue
         seen.add(sid)
         site = utils.get_object(
-            session, web, headers=headers, mtype="site", id=sid, debug=debug
+            session, web, headers=headers, mtype="site", id=sid
         )
         if site:
             sites.append(site)
@@ -188,7 +188,7 @@ def main():
         # 1. Resolve part
         part_id = get_part_id(session, web, headers, args.part, args.debug)
         part = utils.get_object(
-            session, web, headers=headers, mtype="part", id=part_id, debug=args.debug
+            session, web, headers=headers, mtype="part", id=part_id
         )
         print(f"Part details")
         print(f"  name   : {part.get('name')}")

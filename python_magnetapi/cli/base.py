@@ -70,7 +70,6 @@ class BaseCommand(ABC):
             context.web,
             headers=context.headers,
             mtype=mtype,
-            debug=context.debug,
         )
 
     def get_object_by_name(
@@ -104,7 +103,6 @@ class BaseCommand(ABC):
             context.headers,
             ids[name],
             mtype,
-            debug=context.debug,
         )
 
     def validate_resource_type(

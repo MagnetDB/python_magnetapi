@@ -191,7 +191,6 @@ def compute(
 
     part = cache.get_object(
         session, api_server, auth_headers, "part", oid,
-        verbose=verbose, debug=debug,
     )
     part_type = part.get("type", "")
     if part_type not in ("helix", "bitter", "supra"):
@@ -208,7 +207,7 @@ def compute(
 
     sites = utils.get_history(
         session, api_server, auth_headers, oid,
-        mtype=mtype, otype="site", debug=debug,
+        mtype=mtype, otype="site",
     )
     if not sites:
         print("  No sites found – nothing to process.")
@@ -239,7 +238,6 @@ def compute(
             for site_stub in sites:
                 site = cache.get_object(
                     session, api_server, auth_headers, "site", site_stub["id"],
-                    verbose=verbose, debug=debug,
                 )
                 site_name = site.get("name", str(site["id"]))
                 progress.update(site_bar, description=f"Phase 1 – {site_name}")
@@ -247,7 +245,7 @@ def compute(
                 # ── geometry files ──────────────────────────────────────────
                 config_data = utils.get_data(
                     session, api_server, auth_headers,
-                    oid=site["id"], mtype="site", debug=debug,
+                    oid=site["id"], mtype="site",
                 )
 
                 pnames: dict[str, str] = {}
@@ -257,7 +255,6 @@ def compute(
                     magnet = cache.get_object(
                         session, api_server, auth_headers,
                         "magnet", magnet_stub["magnet_id"],
-                        verbose=verbose, debug=debug,
                     )
                     geom_data = magnet.get("geometry", {})
                     if geom_data:
@@ -265,7 +262,6 @@ def compute(
                             session, api_server, auth_headers,
                             geom_data["id"],
                             wd=os.path.join(data_dir, "geometries"),
-                            debug=debug,
                         )
                     for part_stub in magnet.get("magnet_parts", []):
                         _pid   = part_stub["part_id"]
@@ -274,7 +270,6 @@ def compute(
                             continue
                         _pobj = cache.get_object(
                             session, api_server, auth_headers, "part", _pid,
-                            verbose=verbose, debug=debug,
                         )
                         for geom in _pobj.get("geometries", []):
                             attach = geom.get("attachment", {})
@@ -283,7 +278,6 @@ def compute(
                                     session, api_server, auth_headers,
                                     attach["id"],
                                     wd=os.path.join(data_dir, "geometries"),
-                                    debug=debug,
                                 )
                         type_key = _ptype.upper()[0]
                         num_by_type[type_key] += 1
@@ -345,7 +339,6 @@ def compute(
                         session, api_server, auth_headers,
                         attach,
                         wd=tempdir,
-                        debug=debug,
                     )
                     if filepath is None:
                         progress.advance(rec_bar)

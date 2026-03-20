@@ -65,7 +65,7 @@ def _date_str(obj: dict, field: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 
 def get_part_id(session, web, headers, part_name, debug) -> int:
-    ids = utils.get_list(session, web, headers=headers, mtype="part", debug=debug)
+    ids = utils.get_list(session, web, headers=headers, mtype="part")
     if part_name not in ids:
         print(
             f"ERROR: part '{part_name}' not found.\n"
@@ -89,7 +89,7 @@ def get_magnets_for_part(session, web, headers, part_id, debug) -> list[dict]:
         if mid and mid not in seen:
             seen.add(mid)
             obj = utils.get_object(
-                session, web, headers=headers, mtype="magnet", id=mid, debug=debug
+                session, web, headers=headers, mtype="magnet", id=mid
             )
             if obj:
                 magnets.append(obj)
@@ -99,7 +99,7 @@ def get_magnets_for_part(session, web, headers, part_id, debug) -> list[dict]:
 
 def get_sites_for_magnet(session, web, headers, magnet_id, debug) -> list[dict]:
     join_rows = utils.get_history(
-        session, web, headers, magnet_id, mtype="magnet", otype="site", debug=debug
+        session, web, headers, magnet_id, mtype="magnet", otype="site"
     )
     if not join_rows:
         return []
@@ -110,7 +110,7 @@ def get_sites_for_magnet(session, web, headers, magnet_id, debug) -> list[dict]:
         if sid and sid not in seen:
             seen.add(sid)
             obj = utils.get_object(
-                session, web, headers=headers, mtype="site", id=sid, debug=debug
+                session, web, headers=headers, mtype="site", id=sid
             )
             if obj:
                 sites.append(obj)
@@ -126,7 +126,7 @@ def get_records_for_site(session, web, headers, site_id, debug) -> list[dict]:
     Each record has at minimum: id, name, created_at, attachment_id.
     """
     records = utils.get_history(
-        session, web, headers, site_id, mtype="site", otype="record", debug=debug
+        session, web, headers, site_id, mtype="site", otype="record"
     )
     if not records:
         return []
@@ -210,7 +210,7 @@ def main():
         # ── 1. Part ───────────────────────────────────────────────────────
         part_id = get_part_id(session, web, headers, args.part, args.debug)
         part = utils.get_object(
-            session, web, headers=headers, mtype="part", id=part_id, debug=args.debug
+            session, web, headers=headers, mtype="part", id=part_id
         )
         print(f"\nPart details")
         print(f"  name     : {part.get('name')}")
