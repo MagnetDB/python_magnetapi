@@ -143,6 +143,26 @@ def get_object(
         return response
 
 
+def get_fk_id(obj: dict, field: str) -> int | None:
+    """
+    Extract the integer ID from a ForeignKey field in an object returned by get_object.
+
+    MagnetDB API returns ForeignKey fields as nested dicts, e.g.:
+        {"material": {"id": 5, "name": "copper", ...}}
+
+    This helper handles all three forms a FK field can appear in:
+    - dict with "id" key (API response): return dict["id"]
+    - int: return as-is (already an ID)
+    - None / missing: return None
+    """
+    value = obj.get(field)
+    if isinstance(value, dict):
+        return value.get("id")
+    if isinstance(value, int):
+        return value
+    return None
+
+
 def create_object(
     session,
     api_server: str,
