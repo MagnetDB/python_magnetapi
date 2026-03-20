@@ -17,6 +17,8 @@ python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
   * Fix logic bug in setup command available_models validation
   * Eliminate redundant API calls in view and compute commands
   * Update pyproject.toml to declare cli/ sub-packages
+  * Modernize Debian packaging:
+    - Update Standards-Version to 4.7.0
 
  -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 20 Mar 2026 00:00:00 +0100
 
