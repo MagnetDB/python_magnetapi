@@ -174,7 +174,9 @@ def main():
     parser.add_argument("--part",   required=True, help="Part name to inspect")
     parser.add_argument("--server", default=api_server)
     parser.add_argument("--port",   type=int, default=8000)
-    parser.add_argument("--https",  action="store_true")
+    parser.add_argument("--https",     action="store_true")
+    parser.add_argument("--no-verify", action="store_true",
+                        help="Skip TLS certificate verification (self-signed certs)")
     parser.add_argument("--json",   action="store_true", help="Dump raw site JSON at end")
     parser.add_argument("--debug",  action="store_true")
     args = parser.parse_args()
@@ -186,7 +188,12 @@ def main():
     )
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY", "")}
 
+    if args.no_verify:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     with requests.Session() as session:
+        session.verify = not args.no_verify
         # health-check
         r = session.get(f"{web}/api/magnets", headers=headers)
         if r.status_code != 200:
