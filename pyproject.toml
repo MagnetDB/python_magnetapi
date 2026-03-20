@@ -53,10 +53,10 @@ full = [
 python_magnetapi = "python_magnetapi.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Trophime/python_magnetapi"
-Repository = "https://github.com/Trophime/python_magnetapi"
-Documentation = "https://github.com/Trophime/python_magnetapi"
-"Bug Tracker" = "https://github.com/Trophime/python_magnetapi/issues"
+Homepage = "https://github.com/MagnetDB/python_magnetapi"
+Repository = "https://github.com/MagnetDB/python_magnetapi"
+Documentation = "https://github.com/MagnetDB/python_magnetapi"
+"Bug Tracker" = "https://github.com/MagnetDB/python_magnetapi/issues"
 
 [tool.setuptools]
 packages = ["python_magnetapi"]
