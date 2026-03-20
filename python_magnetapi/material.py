@@ -2,34 +2,50 @@
 create material
 """
 
+import requests
+
 from . import utils
+from .exceptions import ResourceConflictError
 
 
 def create(
-    session,
+    session: requests.Session,
     api_server: str,
     headers: dict,
     data: dict,
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    create a material from a data dictionnary
+) -> int:
+    """Create a material from a data dictionary.
+
+    Args:
+        session: requests session
+        api_server: API server base URL
+        headers: HTTP request headers
+        data: material fields (must include "name")
+        verbose: enable verbose output
+        debug: enable debug output
+
+    Returns:
+        ID of the newly created material.
+
+    Raises:
+        ResourceConflictError: if a material with the same name already exists.
     """
 
     ids = utils.get_list(
-        session, api_server, headers=headers, mtype="material", debug=debug
+        session, api_server, headers=headers, mtype="material"
     )
     if data["name"] in ids:
-        print(f"material with name={data['name']} already exists")
-        return None
-
-    else:
-        response = utils.post_json(
-            session, api_server, headers, data, "material", verbose, debug
+        raise ResourceConflictError(
+            f"Material '{data['name']}' already exists",
+            object_name=data["name"],
+            object_type="material",
+            existing_id=ids[data["name"]],
         )
-        if response is None:
-            print(f"material {data['name']} failed to be created")
-            return None
-        print(f"material {data['name']} created with id={response['id']}")
-        return response["id"]
+
+    response = utils.post_json(
+        session, api_server, headers, data, "material"
+    )
+    print(f"material {data['name']} created with id={response['id']}")
+    return response["id"]

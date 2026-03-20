@@ -1,161 +1,289 @@
 """
-Extract flow params from records using a fit
-"""
+Extract flow params from records using a fit.
 
+This module handles data acquisition from the MagnetDB API and delegates
+curve fitting to python_magnetcooling.fitting. The separation of concerns is:
+  - Data acquisition & record management: this module (python_magnetapi)
+  - Curve fitting & hydraulic calculations: python_magnetcooling.fitting
+  - WaterFlow object creation: python_magnetcooling.waterflow_factory / fitting.build_waterflow
+"""
 
 import tempfile
 import os
 import re
+import datetime
+import json
+import logging
 
-import numpy as np
-from scipy import optimize
 from math import floor
 
-import datetime
-
-import json
+import numpy as np
 import pandas as pd
 from rich.progress import track
+
 from . import utils
 
-# from txt2csv import load_files
 from python_magnetrun.utils.files import concat_files
 from python_magnetrun.utils.plots import plot_files
 from python_magnetrun.magnetdata import MagnetData
 from python_magnetrun.processing.stats import nplateaus
 
+from python_magnetcooling.fitting import (
+    fit_hydraulic_system,
+    build_waterflow,
+)
+from python_magnetcooling.waterflow_factory import from_flow_params
 
-def stats(
-    Ikey: str,
-    Okey: str,
-    Ostring: str,
-    threshold: float,
+logger = logging.getLogger(__name__)
+
+
+def _extract_arrays_from_files(
     files: list,
-    wd: str,
-    filename: str,
+    Ikey: str,
+    rpm_key: str,
+    flow_key: str,
+    pin_key: str,
+    pout_key: str,
+    threshold: float,
     debug: bool = False,
-):
-    df = concat_files(files, keys=[Ikey, Okey], debug=debug)
+) -> dict:
+    """
+    Extract numpy arrays from record files for fitting.
+
+    Concatenates data from multiple record files, cleans NaN/Inf values,
+    and filters by current threshold.
+
+    Parameters
+    ----------
+    files : list
+        List of record file paths.
+    Ikey : str
+        Column name for current.
+    rpm_key, flow_key, pin_key, pout_key : str
+        Column names for pump speed, flow rate, inlet pressure, and back pressure.
+    threshold : float
+        Maximum current value (Imax) for filtering.
+    debug : bool
+        Enable debug output.
+
+    Returns
+    -------
+    dict
+        Dictionary with numpy arrays: 'current', 'pump_speed', 'flow_rate',
+        'pressure', 'back_pressure'.
+    """
+    all_keys = [Ikey, rpm_key, flow_key, pin_key, pout_key]
+
+    df = concat_files(files, keys=all_keys, debug=debug)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.dropna(inplace=True)
 
-    # # drop values for Icoil1 > Imax
-    result = df.query(f"{Ikey} <= {threshold}")  # , inplace=True)
+    # Filter by current threshold
+    result = df.query(f"{Ikey} <= {threshold}")
     if result is not None and debug:
         print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
         print(f"result max: {result[Ikey].max()}")
 
-    plot_files(
-        filename,
-        files,
-        key1=Ikey,
-        key2=Okey,
-        fit=None,
-        show=debug,
-        debug=debug,
-        wd=wd,
-    )
-
-    if debug:
-        stats = result[Okey].describe(include="all")
-        print(f"{Okey}: stats")
-    return (result[Okey].mean(), result[Okey].std())
+    return {
+        "current": result[Ikey].to_numpy(),
+        "pump_speed": result[rpm_key].to_numpy(),
+        "flow_rate": result[flow_key].to_numpy(),
+        "pressure": result[pin_key].to_numpy(),
+        "back_pressure": result[pout_key].to_numpy(),
+    }
 
 
-def fit(
-    Ikey: str,
-    Okey: str,
-    Ostring: str,
-    threshold: float,
-    fit_function,
+def _build_flow_params_dict(pump_fit, flow_pressure_fit) -> dict:
+    """
+    Build the standard flow_params dictionary from fit results.
+
+    This preserves backward compatibility with code that expects
+    the legacy dict format (e.g. for JSON serialization).
+
+    Parameters
+    ----------
+    pump_fit : PumpSpeedFit
+        Pump speed fit results.
+    flow_pressure_fit : FlowPressureFit
+        Flow rate and pressure fit results.
+
+    Returns
+    -------
+    dict
+        Flow parameters in the standard format with value/unit pairs.
+    """
+    return {
+        "Vp0": {"value": pump_fit.vp0, "unit": "rpm"},
+        "Vpmax": {"value": pump_fit.vpmax, "unit": "rpm"},
+        "F0": {"value": flow_pressure_fit.f0, "unit": "l/s"},
+        "Fmax": {"value": flow_pressure_fit.fmax, "unit": "l/s"},
+        "Pmax": {"value": flow_pressure_fit.pmax, "unit": "bar"},
+        "Pmin": {"value": flow_pressure_fit.pmin, "unit": "bar"},
+        "Pout": {"value": flow_pressure_fit.back_pressure, "unit": "bar"},
+        "Imax": {"value": pump_fit.imax, "unit": "A"},
+    }
+
+
+def _detect_imax_from_files(
     files: list,
-    wd: str,
-    filename: str,
+    Ikey: str,
+    rpm_key: str,
+    housing: str,
+    fit_data: dict,
+    Imax: float,
+    debug: bool = False,
+) -> tuple:
+    """
+    Detect Imax from plateau regions in record files.
+
+    Examines each record file for plateau regions in pump speed
+    to determine the actual maximum operating current.
+
+    Parameters
+    ----------
+    files : list
+        List of record file paths.
+    Ikey : str
+        Column name for current.
+    rpm_key : str
+        Column name for pump speed.
+    housing : str
+        Housing identifier (e.g. 'M9', 'M10').
+    fit_data : dict
+        Fit data configuration per housing.
+    Imax : float
+        Current Imax estimate.
+    debug : bool
+        Enable debug output.
+
+    Returns
+    -------
+    tuple
+        (new_Imax, dropped_files) where new_Imax is the detected Imax
+        (or original if no plateau found) and dropped_files is the list
+        of files to exclude from fitting.
+    """
+    new_Imax_values = []
+    dropped_files = []
+
+    for file in files:
+        _df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
+        if Ikey not in _df.columns.values.tolist():
+            print(f"{Ikey}: no such key in {file} - ignore {file}")
+            dropped_files.append(file)
+        else:
+            # Compute duration and drop short records
+            if (
+                "Date" in _df.columns.values.tolist()
+                and "Time" in _df.columns.values.tolist()
+            ):
+                tformat = "%Y.%m.%d %H:%M:%S"
+                t0 = datetime.datetime.strptime(
+                    f"{_df['Date'].iloc[0]} {_df['Time'].iloc[0]}", tformat
+                )
+                _df["t"] = _df.apply(
+                    lambda row: (
+                        datetime.datetime.strptime(
+                            f"{row.Date} {row.Time}", tformat
+                        )
+                        - t0
+                    ).total_seconds(),
+                    axis=1,
+                )
+            duration = _df["t"].iloc[-1] - _df["t"][0]
+            if duration <= 15 * 60:
+                dropped_files.append(file)
+            else:
+                # Detect plateau in pump speed
+                _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
+                threshold = _Rpmmax * (1 - 0.1 / 100.0)
+                result = _df.query(
+                    f'{fit_data[housing]["Rpm"]} >= {threshold}'
+                )
+                if not result.empty:
+                    if (
+                        result[Ikey].std() >= 10
+                        and result[Ikey].count() >= 100
+                        and result["Field"].max() >= 0.5
+                    ):
+                        if debug:
+                            _Istats = result[Ikey].describe(include="all")
+                            print(
+                                f'Rpmmax={_Rpmmax}, threshold={threshold} '
+                                f'{Ikey}: {_Istats}, Field: {result["Field"].max()}'
+                            )
+                        new_Imax_values.append(result[Ikey].min())
+
+    # Update Imax if plateaus were detected
+    detected_Imax = Imax
+    if new_Imax_values:
+        new_Imax_mean = sum(new_Imax_values) / len(new_Imax_values)
+        if Imax != new_Imax_mean:
+            print(f"new_Imax = {new_Imax_mean} raw={new_Imax_values}")
+            detected_Imax = new_Imax_mean
+
+    return detected_Imax, dropped_files
+
+
+def compute(
+    session,
+    api_server: str,
+    headers: dict,
+    oid: int,
+    samples: int = 20,
     debug: bool = False,
 ):
     """
-    perform fit
-    """
+    Compute flow_params for a given magnet.
 
-    df = concat_files(files, keys=[Ikey, Okey], debug=debug)
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.dropna(inplace=True)
+    Fetches record data from MagnetDB API, downloads and processes record files,
+    detects Imax from plateau regions, and delegates curve fitting to
+    python_magnetcooling.fitting.fit_hydraulic_system().
 
-    # # drop values for Icoil1 > Imax
-    result = df.query(f"{Ikey} <= {threshold}")  # , inplace=True)
-    if result is not None and debug:
-        print(f"df: nrows={df.shape[0]}, results: nrows={result.shape[0]}")
-        print(f"result max: {result[Ikey].max()}")
+    The fitted parameters are saved as JSON and a WaterFlow object is returned.
 
-    x_data = result[f"{Ikey}"].to_numpy()
-    y_data = result[Okey].to_numpy()
-    params, params_covariance = optimize.curve_fit(fit_function, x_data, y_data)
+    Parameters
+    ----------
+    session : requests.Session
+        Active HTTP session for API calls.
+    api_server : str
+        MagnetDB API server URL.
+    headers : dict
+        HTTP headers (including authorization).
+    oid : int
+        Magnet object ID in the database.
+    samples : int
+        Maximum number of records to sample per site (default 20).
+    debug : bool
+        Enable debug output and plots.
 
-    print(f"{Ostring} Fit:")
-    print(f"\tparams: {params}")
-    # print(f"\tcovariance: {params_covariance}")
-    print(f"\tstderr: {np.sqrt(np.diag(params_covariance))}")
-
-    # TODO update interface with name=f'{sname}_{mname}'
-    plot_files(
-        filename,
-        files,
-        key1=Ikey,
-        key2=Okey,
-        fit=(x_data, [fit_function(x, params[0], params[1]) for x in x_data]),
-        show=debug,
-        debug=debug,
-        wd=wd,
-    )
-
-    return params
-
-
-def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, debug: bool = False):
-    """
-    compute flow_params for a given magnet
+    Returns
+    -------
+    WaterFlow or None
+        Fitted WaterFlow object, or None if no data was available.
     """
     print(f"flow_params.compute: api_server={api_server}, id={oid}")
     cwd = os.getcwd()
     print(f"cwd={cwd}")
 
-    # default value
-    # set Imax to 40 kA to enable real Imax detection
-    flow_params = {
-        "Vp0": {"value": 1000, "unit": "rpm"},
-        "Vpmax": {"value": 2840, "unit": "rpm"},
-        "F0": {"value": 0, "unit": "l/s"},
-        "Fmax": {"value": 61.71612272405876, "unit": "l/s"},
-        "Pmax": {"value": 22, "unit": "bar"},
-        "Pmin": {"value": 4, "unit": "bar"},
-        "Pout": {"value": 4, "unit": "bar"},
-        "Imax": {"value": 28000, "unit": "A"},
-    }
+    # Default flow parameters (used as initial Imax estimate)
+    default_Imax = 28000  # A
 
-    Imax = flow_params["Imax"]["value"]  # 28000
-
-    # get magnet type: aka bitter|helix|supra ??
+    # Get magnet type to determine channel mapping
     odata = utils.get_object(
         session,
         api_server,
         headers=headers,
         mtype="magnet",
         id=oid,
-        debug=debug,
     )
     if debug:
         print(f"magnet data: {json.dumps(odata, indent=2, default=str)}")
     mname = odata["name"]
     mpart = odata["magnet_parts"][0]
     otype = mpart["part"]["type"]
-    # print(f"magnet type: {otype}")
 
-    # TODO: change according to magnet type
-    # or better store data with RpmH and RpmB
-    # similarely keep only Ih, Ib instead of Icoil
-    # and Ih_ref, Ib_ref instead of of Iddcct1
-    # Iddct are values of measured current
-    # Icoil  are actually referenced values required by the user
+    # Channel mapping depends on magnet type (helix vs bitter)
     # on M9: FlowH = Flow1, FlowB = Flow2
     # on M8,M10: FlowH = Flow2, FlowB = Flow1
     fit_data = {
@@ -186,13 +314,16 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
             },
         }
 
+    # Get sites associated with the magnet
     sites = utils.get_history(
-        session, api_server, headers, oid, mtype="magnet", otype="site", debug=debug
+        session, api_server, headers, oid, mtype="magnet", otype="site"
     )
     if debug:
         print(f"sites: {json.dumps(sites, indent=2, default=str)}")
         for i, site in enumerate(sites):
             print(f"site[{i}/{len(sites)}]: {json.dumps(site, indent=2, default=str)}")
+
+    waterflow = None
 
     with tempfile.TemporaryDirectory() as tempdir:
         os.chdir(tempdir)
@@ -208,19 +339,16 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
                 site["site_id"],
                 mtype="site",
                 otype="record",
-                verbose=debug,
-                debug=debug,
             )
 
-            # download files
+            # Download record files (random sampling if many records)
             files = []
-            total = 0
             nrecords = len(records)
             ithreshold = nrecords
             if nrecords > samples:
                 ithreshold = min(samples, floor(nrecords * 0.80))
             if debug:
-                print(f"site[{site['site']['name']}]: nrecords={nrecords}")
+                print(f"site[{sname}]: nrecords={nrecords}")
 
             housing = None
             import random
@@ -230,28 +358,25 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
                 random.seed()
                 num_records = random.sample(range(0, nrecords), ithreshold)
             print(f"randomly selected records ({ithreshold}): {num_records}")
+
             for i in track(
                 range(ithreshold),
-                description=f"Processing records for site {site['site']['name']} (pick {ithreshold}/ {nrecords})",
+                description=f"Processing records for site {sname} (pick {ithreshold}/{nrecords})",
             ):
                 f = records[num_records[i]]
-                # print(f'f={f}')
                 attach = f["attachment_id"]
                 filename = utils.download(
-                    session, api_server, headers, attach, verbose=debug, debug=debug
+                    session, api_server, headers, attach
                 )
                 housing = filename.split("_")[0]
                 files.append(filename)
-                """
-                if i >= ithreshold:
-                    break
-                """
 
             if files:
-                # get keys to be extracted
-                df = pd.read_csv(files[0], sep=r"\s+", engine="python", skiprows=1)
-
-                df_emptycolumns = df.mask(df != 0).dropna(axis=1)
+                # Detect the current column key
+                df_sample = pd.read_csv(
+                    files[0], sep=r"\s+", engine="python", skiprows=1
+                )
+                df_emptycolumns = df_sample.mask(df_sample != 0).dropna(axis=1)
                 keys_emptycolumns = [
                     _key
                     for _key in df_emptycolumns.columns.values.tolist()
@@ -262,14 +387,11 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
                         keys_emptycolumns.remove(_key)
                     except ValueError:
                         pass
-                # print(f"keys_emptycolumns={keys_emptycolumns}")
 
-                # get first Icoil column (not necessary Icoil1)
-                keys = df.columns.values.tolist()
+                keys = df_sample.columns.values.tolist()
                 if debug:
                     print(f"{files[0]}: keys={keys}")
 
-                # key first or latest header that match Icoil\d+ depending on mtype
                 Ikeys = []
                 for _key in keys:
                     _found = re.match(r"(Icoil\d+)", _key)
@@ -279,178 +401,85 @@ def compute(session, api_server: str, headers: dict, oid: int, samples: int=20, 
                 if otype == "bitter":
                     Ikey = Ikeys[-1]
                 print(f"Ikey={Ikey}")
-                df = pd.DataFrame()
 
-                dropped_files = []
-
-                # Imax detection
-                new_Imax = []
-                for file in files:
-                    _df = pd.read_csv(file, sep=r"\s+", engine="python", skiprows=1)
-                    if Ikey not in _df.columns.values.tolist():
-                        print(f"{Ikey}: no such key in {file} - ignore {file}")
-                        dropped_files.append(file)
-                    else:
-                        # drop if duration is less than threshold ??
-                        if (
-                            "Date" in _df.columns.values.tolist()
-                            and "Time" in _df.columns.values.tolist()
-                        ):
-                            tformat = "%Y.%m.%d %H:%M:%S"
-                            t0 = datetime.datetime.strptime(
-                                _df["Date"].iloc[0] + " " + _df["Time"].iloc[0], tformat
-                            )
-                            _df["t"] = _df.apply(
-                                lambda row: (
-                                    datetime.datetime.strptime(
-                                        row.Date + " " + row.Time, tformat
-                                    )
-                                    - t0
-                                ).total_seconds(),
-                                axis=1,
-                            )
-                        duration = _df["t"].iloc[-1] - _df["t"][0]
-                        if duration <= 15 * 60:
-                            dropped_files.append(file)
-
-                        else:
-                            _Rpmmax = _df[fit_data[housing]["Rpm"]].max()
-                            threshold = _Rpmmax * (1 - 0.1 / 100.0)
-                            result = _df.query(
-                                f'{fit_data[housing]["Rpm"]} >= {threshold}'
-                            )
-                            if not result.empty:
-                                if (
-                                    result[Ikey].std() >= 10
-                                    and result[Ikey].count() >= 100
-                                    and result["Field"].max() >= 0.5
-                                ):
-                                    if debug:
-                                        _Istats = result[Ikey].describe(include="all")
-                                        print(
-                                            f'Rpmmax={_Rpmmax}, thresold={threshold} {Ikey}: {_Istats}, Field: {result["Field"].max()}'
-                                        )
-                                        """ """
-                                        import matplotlib.pyplot as plt
-
-                                        result.plot.scatter(
-                                            x=Ikey,
-                                            y=fit_data[housing]["Rpm"],
-                                            grid=True,
-                                        )
-                                        lname = file.replace("_", "-")
-                                        lname = lname.replace(".txt", "")
-                                        lname = lname.split("/")
-                                        plt.title(lname[-1])
-                                        plt.show()
-                                        plt.close()
-                                        """ """
-
-                                    new_Imax.append(result[Ikey].min())
-
-                    """
-                    # xField = (Ikey, "A")
-                    # yField = (fit_data[housing]["Rpm"], "rpm")
-                    # threshold = 2.0e-2
-                    # num_points_threshold = 600
-                    Data = MagnetData.fromtxt(file)
-                    plateaus = nplateaus(
-                        Data, xField, yField, threshold, num_points_threshold, show=True
-                    )
-                    if plateaus:
-                        new_Imax = {min(plateaus[0]["start"], Imax)}
-                        print(f"new_Imax = {new_Imax}")
-                    """
-
-                if new_Imax:
-                    new_Imax_mean = sum(new_Imax) / len(new_Imax)
-                    if Imax != new_Imax_mean:
-                        print(f"new_Imax = {new_Imax_mean} raw={new_Imax}")
-                        flow_params["Imax"]["value"] = new_Imax_mean
-                        Imax = new_Imax_mean
+                # Detect Imax from plateau regions and filter bad files
+                Imax, dropped_files = _detect_imax_from_files(
+                    files, Ikey, fit_data[housing]["Rpm"],
+                    housing, fit_data, default_Imax, debug
+                )
 
                 for file in dropped_files:
                     files.remove(file)
 
-                def vpump_func(x, a: float, b: float):
-                    return a * (x / Imax) ** 2 + b
+                if not files:
+                    print(f"No valid files remaining for site {sname}, skipping")
+                    continue
 
-                params = fit(
-                    Ikey,
-                    fit_data[housing]["Rpm"],
-                    "Rpm",
-                    Imax,
-                    vpump_func,
+                # Extract arrays from record files
+                arrays = _extract_arrays_from_files(
                     files,
-                    cwd,
-                    f"{sname}-{mname}",
-                    debug,
+                    Ikey=Ikey,
+                    rpm_key=fit_data[housing]["Rpm"],
+                    flow_key=fit_data[housing]["Flow"],
+                    pin_key=fit_data[housing]["Pin"],
+                    pout_key=fit_data[housing]["Pout"],
+                    threshold=Imax,
+                    debug=debug,
                 )
-                flow_params["Vp0"]["value"] = params[1]
-                flow_params["Vpmax"]["value"] = params[0]
-                vp0 = flow_params["Vp0"]["value"]
-                vpmax = flow_params["Vpmax"]["value"]
-                params = []
 
-                # Fit for Flow
-                def flow_func(x, a: float, b: float):
-                    return a + b * vpump_func(x, vpmax, vp0) / (vpmax + vp0)
-
-                params = fit(
-                    Ikey,
-                    fit_data[housing]["Flow"],
-                    "Flow",
-                    Imax,
-                    flow_func,
-                    files,
-                    cwd,
-                    f"{sname}-{mname}",
-                    debug,
+                # Delegate fitting to python_magnetcooling
+                pump_fit, flow_pressure_fit = fit_hydraulic_system(
+                    current=arrays["current"],
+                    pump_speed=arrays["pump_speed"],
+                    flow_rate=arrays["flow_rate"],
+                    pressure=arrays["pressure"],
+                    back_pressure=arrays["back_pressure"],
+                    imax=Imax,
+                    method="simple",
+                    current_threshold=0.0,  # Already filtered in _extract_arrays_from_files
                 )
-                flow_params["F0"]["value"] = params[0]
-                flow_params["Fmax"]["value"] = params[1]
-                params = []
 
-                # Fit for Pressure
-                def pressure_func(x, a: float, b: float):
-                    return a + b * (vpump_func(x, vpmax, vp0) / (vpmax + vp0)) ** 2
+                # Build WaterFlow object from fit results
+                waterflow = build_waterflow(pump_fit, flow_pressure_fit)
 
-                params = fit(
-                    Ikey,
-                    fit_data[housing]["Pin"],
-                    "Pin",
-                    Imax,
-                    pressure_func,
-                    files,
-                    cwd,
-                    f"{sname}-{mname}",
-                    debug,
-                )
-                flow_params["Pmin"]["value"] = params[0]
-                flow_params["Pmax"]["value"] = params[1]
-                P0 = flow_params["Pmin"]["value"]
-                Pmax = flow_params["Pmax"]["value"]
-                params = []
-
-                # correlation Pout
-                params = stats(
-                    Ikey,
-                    fit_data[housing]["Pout"],
-                    "Pout",
-                    Imax,
-                    files,
-                    cwd,
-                    f"{sname}-{mname}",
-                    debug,
-                )
-                print(f"Pout(mean, std): {params}")
-                Pout = params[0]
-                flow_params["Pout"]["value"] = Pout
-
-                # save flow_params
+                # Build and save flow_params dict (backward compatible JSON format)
+                flow_params = _build_flow_params_dict(pump_fit, flow_pressure_fit)
                 print(f"flow_params: {json.dumps(flow_params, indent=4)}")
+
                 filename = f"{cwd}/{sname}_{mname}-flow_params.json"
                 with open(filename, "w") as f:
                     f.write(json.dumps(flow_params, indent=4))
 
+                # Generate diagnostic plots if debug is enabled
+                if debug:
+                    plot_files(
+                        f"{sname}-{mname}",
+                        files,
+                        key1=Ikey,
+                        key2=fit_data[housing]["Rpm"],
+                        fit=None,
+                        show=debug,
+                        debug=debug,
+                        wd=cwd,
+                    )
+
+                # Log fit quality
+                print(
+                    f"Fit results for {sname}/{mname}:\n"
+                    f"  Pump speed: Vpmax={pump_fit.vpmax:.2f} rpm, "
+                    f"Vp0={pump_fit.vp0:.2f} rpm, "
+                    f"R²={pump_fit.fit_result.r_squared:.6f}\n"
+                    f"  Flow rate: F0={flow_pressure_fit.f0:.2f} l/s, "
+                    f"Fmax={flow_pressure_fit.fmax:.2f} l/s, "
+                    f"R²={flow_pressure_fit.flow_fit.r_squared:.6f}\n"
+                    f"  Pressure: Pmin={flow_pressure_fit.pmin:.2f} bar, "
+                    f"Pmax={flow_pressure_fit.pmax:.2f} bar, "
+                    f"R²={flow_pressure_fit.pressure_fit.r_squared:.6f}\n"
+                    f"  Back pressure: {flow_pressure_fit.back_pressure:.2f} "
+                    f"± {flow_pressure_fit.back_pressure_std:.2f} bar\n"
+                    f"  Imax={pump_fit.imax:.0f} A"
+                )
+
         os.chdir(cwd)
+
+    return waterflow

@@ -4,32 +4,45 @@ Priority: optional
 Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 Build-Depends: debhelper-compat (= 13),
  pybuild-plugin-pyproject,
- python3-setuptools,
  python3-all,
- python3-magnetrun,
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
  python3-magnetsetup,
- python3-rich
+ python3-magnetcooling,
+ python3-magnettools
 Standards-Version: 4.7.0
 Homepage: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
 #Testsuite: autopkgtest-pkg-python
 Rules-Requires-Root: no
 
 Package: python3-magnetapi
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}
-Description: Python CLI for MagnetDB
- Python MagnetAPI provides utilities and a command-line interface to interact
- with MagnetDB, a database system for managing magnetic materials, parts,
- magnets, sites, and experimental records.
+Depends: ${python3:Depends}, ${misc:Depends},
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
+ python3-magnetsetup,
+ python3-magnetcooling,
+ python3-magnettools
+Suggests: python-magnetapi-doc
+Description: Python library and CLI for interacting with MagnetDB
+ Python MagnetAPI provides utilities to interact with MagnetDB, a database
+ for magnetic materials, parts, magnets, and sites.
  .
- This package includes:
-  - API utilities for MagnetDB operations (CRUD)
-  - CLI tools for materials, parts, magnets, sites, and records
-  - Simulation setup and execution support
-  - Flow parameter computation and analysis
-  - Hoop stress history calculation
+ Features include:
+  - Listing, viewing, creating, and deleting database objects
+  - Setting up and running simulations
+  - Computing derived quantities (inductances, flow parameters, hoop stress)
+  - Post-processing simulation results
  .
  This package installs the library for Python 3.
 
@@ -37,7 +50,9 @@ Package: python-magnetapi-doc
 Architecture: all
 Section: doc
 Depends: ${sphinxdoc:Depends}, ${misc:Depends}
-Description: Documentation for Python MagnetAPI
- Python MagnetAPI provides utilities to interact with MagnetDB.
+Description: Python library and CLI for MagnetDB (documentation)
+ Python MagnetAPI provides utilities to interact with MagnetDB, a database
+ for materials, parts, magnets, and sites.
  .
- This is the common documentation package.
+ This package provides the common documentation including Sphinx-generated
+ HTML documentation, API reference, and usage guides.

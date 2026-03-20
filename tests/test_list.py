@@ -4,7 +4,7 @@ import requests
 
 # add  @pytest.fixture to declare context
 
-api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
+api_server = os.getenv("MAGNETDB_API_SERVER") or "https://api.magnetdb-dev.local"
 api_key = os.getenv("MAGNETDB_API_KEY")
 
 headers = {"Authorization": os.getenv("MAGNETDB_API_KEY")}
@@ -43,7 +43,14 @@ class TestList:
     def list_type(self, mtype: str):
         from python_magnetapi import utils
 
-        return utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False, verbose=False)
+        return utils.get_list(
+            session,
+            api_server,
+            headers=headers,
+            mtype=mtype,
+            debug=False,
+            verbose=False,
+        )
 
     def test_material(self):
         _ids = self.list_type("material")
@@ -127,7 +134,9 @@ class TestCrud:
     def delete(self, mtype: str, name: str):
         from python_magnetapi import utils
 
-        ids = utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False)
+        ids = utils.get_list(
+            session, api_server, headers=headers, mtype=mtype, debug=False
+        )
         print(f"id={ids[name]}")
 
         response = utils.del_object(
@@ -140,7 +149,9 @@ class TestCrud:
             debug=False,
         )
 
-        ids = utils.get_list(session, api_server, headers=headers, mtype=mtype, debug=False)
+        ids = utils.get_list(
+            session, api_server, headers=headers, mtype=mtype, debug=False
+        )
         return name in ids
 
     def up(self, mtype: str):

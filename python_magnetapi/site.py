@@ -2,7 +2,10 @@
 create site
 """
 
+import requests
+
 from . import utils
+from .exceptions import ResourceConflictError
 from datetime import datetime
 
 # from . import magnet
@@ -10,103 +13,84 @@ from datetime import datetime
 
 
 def create(
-    session,
+    session: requests.Session,
     api_server: str,
     headers: dict,
     data: dict,
     verbose: bool = False,
     debug: bool = False,
-) -> int:
-    """
-    create a site from a data dictionnary
+) -> int | None:
+    """Create a site from a data dictionary.
+
+    Magnets and records listed in *data* are linked after the site is created.
+
+    Args:
+        session: requests session
+        api_server: API server base URL
+        headers: HTTP request headers
+        data: site fields (must include "name"); may contain "magnets" and
+              "records" lists which are processed separately
+        verbose: enable verbose output
+        debug: enable debug output
+
+    Returns:
+        ID of the newly created site, or None if creation failed.
+
+    Raises:
+        ResourceConflictError: if a site with the same name already exists.
+        RuntimeError: if a magnet or record entry has an unexpected type.
     """
 
     ids = utils.get_list(
-        session, api_server, headers=headers, mtype="site", debug=debug
+        session, api_server, headers=headers, mtype="site"
     )
     if data["name"] in ids:
-        print(f"site with name={data['name']} already exists")
-        return None
-
-    else:
-        # data: extract only necessary data for creation
-        magnets = []
-        if "magnets" in data:
-            magnets = data["magnets"].copy()
-            del data["magnets"]
-
-        if "status" in data:
-            del data["status"]
-
-        records = []
-        if "records" in data:
-            records = data["records"].copy()
-            del data["records"]
-
-        if "status" in data:
-            del data["status"]
-
-        response = utils.post_data(
-            session, api_server, headers, data, "site", verbose, debug
+        raise ResourceConflictError(
+            f"Site '{data['name']}' already exists",
+            object_name=data["name"],
+            object_type="site",
+            existing_id=ids[data["name"]],
         )
-        if response is None:
-            print(f"site {data['name']} failed to be created")
-            return None
-        print(f"site {data['name']} created with id={response['id']}")
 
-        # loop over magnets
-        site_id = response["id"]
+    # data: extract only necessary data for creation
+    magnets = []
+    if "magnets" in data:
+        magnets = data["magnets"].copy()
+        del data["magnets"]
 
-        for magnet in magnets:
-            _ids = utils.get_list(
-                session, api_server, headers=headers, mtype="magnet", debug=debug
-            )
+    if "status" in data:
+        del data["status"]
 
-            _id = None
-            mname = None
-            if isinstance(magnet, str):
-                mname = magnet
-                if magnet in _ids:
-                    _id = _ids[magnet]
-                    utils.add_data_to_object(
-                        session,
-                        api_server,
-                        headers,
-                        site_id,
-                        mtype="site",
-                        dtype="magnet",
-                        data={"magnet_id": _id},
-                        verbose=verbose,
-                        debug=debug,
-                    )
-                else:
-                    print(
-                        f"site {data['name']} failed to add magnet {magnet} - no such magnet"
-                    )
+    records = []
+    if "records" in data:
+        records = data["records"].copy()
+        del data["records"]
 
-            elif isinstance(magnet, dict):
-                mname = magnet["name"]
-                _id = -1
-                if mname in _ids:
-                    _id = _ids[magnet["name"]]
-                else:
-                    _id = magnet.create(
-                        session,
-                        api_server,
-                        headers,
-                        magnet,
-                        verbose=verbose,
-                        debug=debug,
-                    )
+    if "status" in data:
+        del data["status"]
 
-            else:
-                raise RuntimeError(
-                    f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
-                )
+    response = utils.post_data(
+        session, api_server, headers, data, "site"
+    )
+    if response is None:
+        print(f"site {data['name']} failed to be created")
+        return None
+    print(f"site {data['name']} created with id={response['id']}")
 
-            # call to api/sites/{site_id}/magnets with magnetid = _id
-            if _id is not None:
-                print(f"create:site attach magnet id={_id} name={mname}")
+    # loop over magnets
+    site_id = response["id"]
+
+    for magnet in magnets:
+        _ids = utils.get_list(
+            session, api_server, headers=headers, mtype="magnet"
+        )
+
+        _id = None
+        mname = None
+        if isinstance(magnet, str):
+            mname = magnet
+            if magnet in _ids:
+                _id = _ids[magnet]
                 utils.add_data_to_object(
                     session,
                     api_server,
@@ -115,54 +99,88 @@ def create(
                     mtype="site",
                     dtype="magnet",
                     data={"magnet_id": _id},
-                    verbose=verbose,
-                    debug=debug,
+                )
+            else:
+                print(
+                    f"site {data['name']} failed to add magnet {magnet} - no such magnet"
                 )
 
-        for record in records:
-            if not isinstance(record, dict):
-                raise RuntimeError(
-                    f"site/create: unexpected type for record (type={type(record)}) - should be dict"
+        elif isinstance(magnet, dict):
+            mname = magnet["name"]
+            _id = -1
+            if mname in _ids:
+                _id = _ids[magnet["name"]]
+            else:
+                _id = magnet.create(
+                    session,
+                    api_server,
+                    headers,
+                    magnet,
                 )
-            _id = record.create(
-                session, api_server, headers, record, verbose=verbose, debug=debug
+
+        else:
+            raise RuntimeError(
+                f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
             )
 
-        # update site description
-        # update status
-        # putinoperation: patch /api/sites/{id}/put_in_operation
-        # shutdown: patch "/api/sites/{id}/shutdown
-        return response["id"]
+        # call to api/sites/{site_id}/magnets with magnetid = _id
+        if _id is not None:
+            print(f"create:site attach magnet id={_id} name={mname}")
+            utils.add_data_to_object(
+                session,
+                api_server,
+                headers,
+                site_id,
+                mtype="site",
+                dtype="magnet",
+                data={"magnet_id": _id},
+            )
+
+    for record in records:
+        if not isinstance(record, dict):
+            raise RuntimeError(
+                f"site/create: unexpected type for record (type={type(record)}) - should be dict"
+            )
+        _id = record.create(
+            session, api_server, headers, record
+        )
+
+    # update site description
+    # update status
+    # putinoperation: patch /api/sites/{id}/put_in_operation
+    # shutdown: patch "/api/sites/{id}/shutdown
+    return response["id"]
 
 
 def status(
-    session,
+    session: requests.Session,
     api_server: str,
     headers: dict,
     data: dict,
     verbose: bool = False,
     debug: bool = False,
 ) -> bool:
-    """
-    set site status
+    """Set the operational status of a site.
 
-    /api/sites/{id}/put_in_operation
-    /api/sites/{id}/shutdown
+    Calls PUT /api/sites/{id}/put_in_operation or /api/sites/{id}/shutdown
+    depending on the requested status.
 
-    from magnetdb.models.status.py:
-    class Status:
+    Args:
+        session: requests session
+        api_server: API server base URL
+        headers: HTTP request headers
+        data: dict with keys:
+            - "name" or "id": site identifier
+            - "status": one of "in_study", "in_stock", "in_operation"
+            - "date": timestamp string in "%Y.%m.%d %H:%M:%S" format
+        verbose: enable verbose output
+        debug: enable debug output
 
-    data:
-    name: of site
-    id:
-    status:
-    date:
+    Returns:
+        True on success, False if the site is not found or the request failed.
 
-    see python_magnetdb.models.status.py:
-    IN_STUDY = "in_study"
-    IN_STOCK = "in_stock"
-    IN_OPERATION = "in_operation"
-    DEFUNCT = "defunct"
+    Raises:
+        RuntimeError: if "name"/"id" is missing or status value is unknown.
     """
     print(f"site.status: data={data}", flush=True)
 
@@ -173,7 +191,7 @@ def status(
             )
 
         ids = utils.get_list(
-            session, api_server, headers=headers, mtype="site", debug=debug
+            session, api_server, headers=headers, mtype="site"
         )
         if data["name"] not in ids:
             print(f"site with name={data['name']} does not exist")
@@ -187,7 +205,6 @@ def status(
                 headers=headers,
                 mtype="site",
                 id=data["id"],
-                debug=debug,
             )
             data["name"] = sdata["name"]
 

@@ -1,0 +1,6 @@
+[submodule "python_magnetsetup"]
+	path = python_magnetsetup
+	url = git@github.com:MagnetDB/python_magnetsetup.git
+[submodule "python_magnetcooling"]
+	path = python_magnetcooling
+	url = git@github.com:MagnetDB/python_magnetcooling.git
