@@ -145,22 +145,85 @@ def get_object(
 
 def get_fk_id(obj: dict, field: str) -> int | None:
     """
-    Extract the integer ID from a ForeignKey field in an object returned by get_object.
+    Extract the integer ID for a direct/forward ForeignKey field from a
+    MagnetDB API response dict (as returned by get_object).
 
-    MagnetDB API returns ForeignKey fields as nested dicts, e.g.:
-        {"material": {"id": 5, "name": "copper", ...}}
+    Django serializes a ForeignKey named `material` as the column `material_id`
+    (an integer), not as a nested object.  Checks in order:
+      1. "{field}_id" key  — standard Django column name (primary form)
+      2. "{field}" key holding an int
+      3. "{field}" key holding a dict with "id" (defensive fallback)
 
-    This helper handles all three forms a FK field can appear in:
-    - dict with "id" key (API response): return dict["id"]
-    - int: return as-is (already an ID)
-    - None / missing: return None
+    For reverse FK / many-to-many relations (e.g. parts on a magnet) the
+    related objects are NOT in the get_object response.
+    Use get_parts_for_magnet() or an equivalent nested-endpoint helper instead.
     """
+    fk_col = f"{field}_id"
+    if fk_col in obj:
+        return obj[fk_col]
     value = obj.get(field)
-    if isinstance(value, dict):
-        return value.get("id")
     if isinstance(value, int):
         return value
+    if isinstance(value, dict):
+        return value.get("id")
     return None
+
+
+def get_parts_for_magnet(
+    session,
+    api_server: str,
+    headers: dict,
+    magnet_id: int,
+    verbose: bool = False,
+    debug: bool = False,
+) -> list:
+    """
+    Return the full Part objects associated with a magnet.
+
+    Calls GET /api/magnets/{magnet_id}/parts (must exist in magnetdb).
+    The endpoint may return either:
+    - a bare array of Part objects directly, or
+    - a bare array of MagnetPart join rows each containing a `part_id` field.
+
+    In the join-row case each part is fetched individually via get_object.
+    Returns a list of Part dicts (same structure as get_object(mtype="part")).
+    """
+    if verbose:
+        print(f"get_parts_for_magnet: api_server={api_server}, magnet_id={magnet_id}")
+
+    r = session.get(f"{api_server}/api/magnets/{magnet_id}/parts", headers=headers)
+    if r.status_code != 200:
+        print(
+            f"get_parts_for_magnet: {r.status_code} for magnet {magnet_id}"
+        )
+        return []
+
+    rows = r.json()
+    if debug:
+        print(f"get_parts_for_magnet: rows={rows}")
+
+    if not rows:
+        return []
+
+    # If the first row looks like a Part (has "name"), return as-is.
+    if "name" in rows[0]:
+        return rows
+
+    # Otherwise treat as MagnetPart join rows and fetch each Part individually.
+    parts = []
+    seen = set()
+    for row in rows:
+        part_id = row.get("part_id")
+        if part_id is None or part_id in seen:
+            continue
+        seen.add(part_id)
+        part = get_object(
+            session, api_server, headers, part_id, mtype="part",
+            verbose=verbose, debug=debug,
+        )
+        if part:
+            parts.append(part)
+    return parts
 
 
 def create_object(
