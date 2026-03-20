@@ -47,16 +47,20 @@ def create(
                 required_by=data["name"],
             )
     elif isinstance(mat, dict):
-        mname = mat["name"]
-        _id = -1
-        if mname in mat_ids:
-            _id = mat_ids[mname]
+        # If the dict already has an "id" key it is an API response object —
+        # use the id directly without an extra lookup.
+        if "id" in mat:
+            data["material_id"] = mat["id"]
         else:
-            _id = material.create(
-                session, api_server, headers, mat, verbose=verbose, debug=debug
-            )
-
-        data["material_id"] = _id
+            mname = mat["name"]
+            _id = -1
+            if mname in mat_ids:
+                _id = mat_ids[mname]
+            else:
+                _id = material.create(
+                    session, api_server, headers, mat, verbose=verbose, debug=debug
+                )
+            data["material_id"] = _id
         del data["material"]
     else:
         raise ValidationError(
