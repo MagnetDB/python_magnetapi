@@ -15,9 +15,10 @@ Usage
 
 Optional flags
 --------------
-    --server  override MAGNETDB_API_SERVER
-    --https   use HTTPS instead of HTTP (default: HTTP on port 8000)
-    --debug   print raw API responses
+    --server     override MAGNETDB_API_SERVER
+    --https      use HTTPS instead of HTTP (default: HTTP on port 8000)
+    --no-verify  skip TLS certificate verification (self-signed certs)
+    --debug      print raw API responses
 """
 
 import os
@@ -25,6 +26,7 @@ import sys
 import argparse
 
 import requests
+import urllib3
 from rich.console import Console
 from rich.table import Table
 
@@ -51,7 +53,9 @@ def main():
     parser.add_argument("--magnet", required=True, help="Magnet name to inspect")
     parser.add_argument("--server", default=api_server, help="API server hostname")
     parser.add_argument("--port",   type=int, default=8000, help="Port (HTTP only)")
-    parser.add_argument("--https",  action="store_true", help="Use HTTPS")
+    parser.add_argument("--https",     action="store_true", help="Use HTTPS")
+    parser.add_argument("--no-verify", action="store_true",
+                        help="Skip TLS certificate verification (self-signed certs)")
     parser.add_argument("--debug",  action="store_true", help="Verbose API output")
     args = parser.parse_args()
 
@@ -62,9 +66,13 @@ def main():
     )
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY", "")}
 
+    if args.no_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     console = Console()
 
     with requests.Session() as session:
+        session.verify = not args.no_verify
         # health-check
         r = session.get(f"{web}/api/magnets", headers=headers)
         if r.status_code != 200:
