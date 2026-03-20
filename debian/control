@@ -3,11 +3,8 @@ Section: python
 Priority: optional
 Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 Build-Depends: debhelper-compat (= 13),
- dh-python,
  pybuild-plugin-pyproject,
- python3-setuptools,
  python3-all,
- pybuild-plugin-pyproject,
  python3-requests,
  python3-pandas,
  python3-numpy,
@@ -17,11 +14,10 @@ Build-Depends: debhelper-compat (= 13),
  python3-magnetsetup,
  python3-magnetcooling,
  python3-magnettools
- python3-rich
 Standards-Version: 4.7.0
 Homepage: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
 #Testsuite: autopkgtest-pkg-python
 Rules-Requires-Root: no
 

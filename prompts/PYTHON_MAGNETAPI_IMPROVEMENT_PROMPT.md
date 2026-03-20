@@ -7,24 +7,25 @@
 **Current Version**: 0.1.0  
 **Python Support**: 3.11+  
 **Collaborators**: Christophe Trophime, Remi Caumette  
-**Active Branch**: master (merged from refactor-claude and claude/refactor-cli-prompts-N5tli)
+**Active Branch**: claude/handle-foreignkey-fields-ZDujw
 **Status**: Active development with recent major improvements
 
 ### Recent Major Achievements (March 2026)
 
-The refactor-claude branch has seen significant progress across multiple improvement tiers:
+Multiple branches have seen significant progress across all improvement tiers:
 
 - **✅ Documentation Complete**: Full Sphinx documentation infrastructure with 1,500+ lines of comprehensive docs covering API, CLI, installation, testing, and contributing
 - **✅ Performance Optimized**: hoop_stress.py rewritten for better performance, plus parallel processing version
 - **✅ Modern Packaging**: Migrated to pure pyproject.toml (removed setup.py), proper PEP 517/518 compliance
 - **✅ Enhanced Dependencies**: Integrated python3-magnetcooling and python3-magnettools
-- **✅ Demo Scripts Added**: Two comprehensive demo scripts with 494 lines showcasing real-world usage
+- **✅ Demo Scripts Added**: Three comprehensive demo scripts showcasing real-world usage (part history, part+site records, magnet parts)
 - **✅ README Expansion**: README expanded from ~50 to 314 lines with detailed installation and usage guides
 - **✅ Testing Framework**: pytest properly configured with test paths and coverage settings
-- **✅ CLI Refactoring Complete**: Monolithic cli.py (753 lines) split into modular cli/ package with 9 focused modules
-- **✅ Error Handling Complete**: Custom exception hierarchy in exceptions.py with full context support
-- **✅ Debian Packaging Updated**: pybuild/dh-python, pybuild-plugin-pyproject, control/rules modernized
-- **✅ Type Hints Added**: Type hints and docstrings added to all CLI modules
+- **✅ CLI Refactoring Complete**: Monolithic 684-line cli.py split into modular cli/ package with command handlers, context, parser, and base class
+- **✅ Error Handling Foundation**: Custom exception hierarchy in exceptions.py (121 lines, MagnetAPIException base + subclasses)
+- **✅ Type Hints in CLI**: Full type hints and docstrings added to all cli/ modules
+- **✅ ForeignKey Handling**: `get_fk_id()` helper added to utils.py; `get_parts_for_magnet()` for nested API relations
+- **✅ SSL Verification**: `--no-verify` flag added to CLIContext and all demo scripts; InsecureRequestWarning suppressed when opted in
 
 ### Core Characteristics
 - MagnetDB API client library with CLI tools
@@ -54,17 +55,18 @@ We follow a systematic, step-by-step approach to improve the codebase:
 - ✅ Version consistency across all configuration files
 - ✅ Test suite setup (pytest configuration)
 - ✅ Modern packaging (pyproject.toml migration)
-- ✅ Debian packaging modernization (pybuild, dh-python, pybuild-plugin-pyproject)
-- ✅ Error handling and exception framework (exceptions.py with full hierarchy)
-- ⏳ Type hints and static analysis setup - PARTIAL (CLI done; py.typed marker missing; mypy not configured)
+- ✅ Error handling and exception framework (exceptions.py created)
+- ⏳ Debian packaging modernization (debhelper, pybuild) - REMAINING
+- ⏳ Type hints - full coverage and mypy config - PARTIAL (CLI complete, other modules pending)
 
 **Tier 2 (Code Quality & Maintainability)** - 🛠️ MAJOR PROGRESS
 - ✅ Performance optimization (hoop_stress.py rewritten)
 - ✅ Parallel processing capability added
 - ✅ Modern library integration (python3-magnetcooling)
-- ✅ CLI module refactoring (cli.py split into modular cli/ package)
-- ⏳ Test suite enhancement and fixture population - PARTIAL (CLI tests added)
-- ⏳ Logging implementation (replace print statements) - REMAINING
+- ✅ CLI module refactoring (modular cli/ package, complete)
+- ✅ ForeignKey field handling in utils.py (get_fk_id, get_parts_for_magnet)
+- ⏳ Test suite enhancement and fixture population - REMAINING
+- ⏳ Logging implementation (replace remaining print statements) - REMAINING
 - ⏳ Configuration management (move hardcoded values) - REMAINING
 
 **Tier 3 (Documentation & Developer Experience)** - ✅ COMPLETE
@@ -147,22 +149,24 @@ python-magnetapi/
 ├── .devcontainer/               # Development environment
 ├── python_magnetapi/            # Main package
 │   ├── __init__.py              # Package version management
-│   ├── cli/                     # CLI package (refactored from monolithic cli.py)
-│   │   ├── __init__.py          # CLI entry point
+│   ├── cli.py                   # Legacy CLI shim (kept for compatibility)
+│   ├── cli/                     # Modular CLI package (REFACTORED ✅)
+│   │   ├── __init__.py          # Exports main()
 │   │   ├── __main__.py          # python -m python_magnetapi.cli support
-│   │   ├── base.py              # Base command class
-│   │   ├── context.py           # CLI context/shared state
-│   │   ├── parser.py            # Argument parser setup
-│   │   └── commands/            # Command handlers
-│   │       ├── list.py          # List commands
-│   │       ├── view.py          # View commands
-│   │       ├── create.py        # Create commands
-│   │       ├── delete.py        # Delete commands
-│   │       ├── setup.py         # Setup commands
-│   │       ├── run.py           # Run commands
-│   │       ├── compute.py       # Compute commands
-│   │       └── process.py       # Process commands
-│   ├── utils.py                 # API utility functions
+│   │   ├── parser.py            # Argument parser configuration
+│   │   ├── context.py           # CLIContext dataclass (session, headers, --no-verify)
+│   │   ├── base.py              # BaseCommand ABC with shared helpers
+│   │   └── commands/            # Per-command handler modules
+│   │       ├── list.py          # list command
+│   │       ├── view.py          # view command
+│   │       ├── create.py        # create command
+│   │       ├── delete.py        # delete command
+│   │       ├── setup.py         # setup command
+│   │       ├── run.py           # run command
+│   │       ├── compute.py       # compute command
+│   │       └── process.py       # process command
+│   ├── exceptions.py            # Custom exception hierarchy (MagnetAPIException + subclasses)
+│   ├── utils.py                 # API utility functions (incl. get_fk_id, get_parts_for_magnet)
 │   ├── material.py              # Material domain module
 │   ├── part.py                  # Part domain module
 │   ├── magnet.py                # Magnet domain module
@@ -176,10 +180,14 @@ python-magnetapi/
 │   └── flow_params.py           # Computation module (uses python3-magnetcooling)
 ├── tests/                       # Test suite
 │   ├── test_list.py             # Comprehensive test class
+│   ├── cli/                     # CLI-specific tests
+│   │   ├── test_cli_integration.py
+│   │   └── test_list_command.py
 │   └── *.dat, *.json            # Test fixtures
 ├── examples/                    # Demo scripts
 │   ├── demo_part_history.py     # Part hoop stress history demo
 │   ├── demo_part_site_records.py # Part site records demo
+│   ├── demo_magnet_parts.py     # Magnet parts listing demo (NEW)
 │   └── README-demos.md          # Demo documentation
 ├── docs/                        # Sphinx documentation (COMPLETE)
 │   ├── conf.py                  # Sphinx configuration
@@ -321,16 +329,16 @@ NEXT STEPS:
 - ✅ Version consistency modernization (pyproject.toml updates, improved __init__.py)
 - ✅ Packaging modernization (removed setup.py, clean pyproject.toml with proper dependencies)
 - ✅ Test framework setup (pytest configuration in pyproject.toml)
-- ✅ Debian packaging modernization (pybuild, dh-python, pybuild-plugin-pyproject; debian/rules, debian/control updated)
-- ✅ Error handling framework (exceptions.py with MagnetAPIException hierarchy and context support)
+- ✅ Error handling foundation: exceptions.py with MagnetAPIException hierarchy
 
 #### Tier 2 (Code Quality) - ✅ MAJOR PROGRESS
 - ✅ Performance optimization of hoop_stress.py (rewritten: +760 lines improvements)
 - ✅ Parallel processing capability added (hoop_stress_parallel.py with 484 lines)
 - ✅ flow_params.py modernized to use python3-magnetcooling library
-- ✅ CLI module refactoring (cli.py → modular cli/ package: base, context, parser, 8 command modules)
-- ✅ Type hints and docstrings added to all CLI modules
-- ✅ CLI integration tests and list command tests added (tests/cli/)
+- ✅ CLI refactored into modular cli/ package (context, base, parser, per-command handlers)
+- ✅ `__main__.py` added for `python -m python_magnetapi.cli` support
+- ✅ ForeignKey handling: `get_fk_id()` and `get_parts_for_magnet()` added to utils.py
+- ✅ `--no-verify` SSL flag added to CLIContext and all demo scripts
 
 #### Tier 3 (Documentation) - ✅ COMPLETED
 - ✅ Full Sphinx documentation structure created
@@ -354,20 +362,20 @@ NEXT STEPS:
 - ✅ Updated numpy, scipy, and other core dependencies
 
 ### In-Progress Improvements
-- Type hints and static analysis (CLI modules done; non-CLI modules partial; py.typed marker and mypy config still needed)
-- Test suite enhancement (CLI tests added; domain module tests still needed)
+- Type hints and static analysis (CLI complete, other modules pending)
+- Error handling (exceptions.py created, not yet systematically applied across all modules)
 
 ### Next Planned Improvements
 
 #### Priority: Tier 1 Remaining
-1. Type hints completion for domain modules (material.py, part.py, magnet.py, site.py, record.py, utils.py)
-2. Add py.typed marker (pyproject.toml already references it, file missing)
-3. Configure mypy for static analysis in pyproject.toml
+1. Debian packaging modernization (debhelper, pybuild)
+2. Propagate exception hierarchy across all modules (replace RuntimeError / print-based errors)
+3. Type hints completion for domain modules (utils, part, magnet, site, etc.) and mypy configuration
 
 #### Priority: Tier 2 Remaining
-4. Test suite enhancement and fixture population (domain module tests)
-5. Logging implementation (replace remaining print statements across all modules)
-6. Configuration management (move hardcoded values to config)
+4. Test suite enhancement and fixture population (CLI unit tests scaffolded, need expansion)
+5. Logging implementation (replace remaining print statements in utils.py, domain modules)
+6. Configuration management (move hardcoded values)
 
 #### Priority: Tier 4 (Future)
 8. Interactive CLI improvements
@@ -380,16 +388,28 @@ NEXT STEPS:
 Based on the completed work, here are the recommended focus areas:
 
 ### High Priority (Tier 1 Completion)
-1. **Type Hints Completion** *(CLI done; non-CLI modules remaining)*
-   - Add type hints to domain modules (material.py, part.py, magnet.py, site.py, record.py, utils.py)
-   - Add py.typed marker (file missing despite pyproject.toml reference)
-   - Configure mypy for static analysis in pyproject.toml
+1. **Debian Packaging Modernization**
+   - Update debian/rules to use dh-python and pybuild
+   - Ensure compatibility with modern Debian/Ubuntu standards
+   - Test package building and installation
+
+2. **Error Handling Propagation**
+   - exceptions.py already defines the hierarchy (MagnetAPIException + subclasses)
+   - Replace RuntimeError / print-based errors in utils.py, domain modules
+   - Wire CLI error handlers to the custom exception types
+   - Add error handling tests
+
+3. **Type Hints Completion**
+   - CLI modules fully typed — extend to utils.py, domain modules (part, magnet, site, record, material)
+   - Configure mypy for static analysis
+   - Add py.typed marker
+   - Gradually improve type coverage
 
 ### Medium Priority (Tier 2 Focus)
-2. **Test Suite Enhancement**
-   - Add tests for domain modules
-   - Expand fixture coverage
-   - Improve test isolation (mock API calls)
+4. **Test Suite Enhancement** *(CLI unit tests scaffolded — expand coverage)*
+   - Populate unit tests for domain modules
+   - Add integration test fixtures
+   - Target ≥ 80% coverage
 
 3. **Logging Framework**
    - Replace print statements with proper logging
@@ -510,7 +530,7 @@ Example:
 **Created**: 2025-01-28
 **Last Updated**: 2026-03-20
 **Scope**: python-magnetapi package improvements
-**Major Changes**: Documented completion of CLI refactoring, error handling framework, Debian packaging modernization, and CLI type hints; updated project structure; revised next steps
+**Major Changes**: Documented CLI refactoring completion (modular cli/ package); exceptions.py; get_fk_id/get_parts_for_magnet helpers; --no-verify flag; demo_magnet_parts.py; updated project structure, tier status, and next-steps roadmap
 
 ---
 

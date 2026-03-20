@@ -3,20 +3,23 @@
 ## Task Overview
 
 **Priority**: Tier 1 (High Impact, Foundation)
-**Status**: ✅ COMPLETED (commit c06e34c, branch master)
-**Result**: exceptions.py added with MagnetAPIException base class and full exception hierarchy; context support for status_code, url, response
-**Remaining**: Systematic adoption across all domain modules still in progress
+**Status**: 🛠️ IN PROGRESS — Foundation complete, propagation remaining
+**Estimated Effort**: Medium (hierarchy done; ~10-15 files still need updating)
+**Breaking Changes**: Yes (functions returning `None` will raise exceptions)
 
 ## Current State Analysis
 
-### Problems Identified
-1. ❌ **No custom exceptions** - Zero custom exception classes exist in the codebase
-2. ❌ **Inconsistent error handling** - Mix of `print()`, `RuntimeError`, `ValueError`, and `return None`
-3. ❌ **Poor error context** - Error messages lack structured information (request details, debugging info)
-4. ❌ **No exception hierarchy** - Can't catch specific error types
-5. ❌ **Silent failures** - Many functions return `None` on error instead of raising exceptions
-6. ❌ **Print-based errors** - Heavy use of `print()` for error messages (should use logging/exceptions)
-7. ❌ **No error recovery** - No retry logic, error context, or recovery mechanisms
+### What Exists ✅
+- ✅ `exceptions.py` created (121 lines) with `MagnetAPIException` base class and subclasses
+- ✅ CLI (`cli/` package) wired to catch `MagnetAPIException` and `AuthenticationError` with Rich output
+- ✅ Basic exception context via `**context` kwargs (status_code, url, response, etc.)
+
+### Problems Remaining ❌
+1. ❌ **Domain modules not updated** - `utils.py`, `part.py`, `magnet.py`, `site.py`, `record.py` still use `RuntimeError` / `print()`-based errors
+2. ❌ **Silent failures remain** - Some functions still return `None` on error instead of raising
+3. ❌ **Print-based errors** - `utils.py` and domain modules still use `print()` for error output
+4. ❌ **No error recovery** - No retry logic implemented
+5. ❌ **No error handling tests** - No tests for exception paths
 
 ### Files Requiring Updates
 

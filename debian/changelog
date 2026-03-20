@@ -19,8 +19,20 @@ python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
   * Update pyproject.toml to declare cli/ sub-packages
   * Modernize Debian packaging:
     - Update Standards-Version to 4.7.0
+    - Add full runtime dependencies to Build-Depends and Depends
+    - Uncomment Vcs-Browser and Vcs-Git fields
+    - Remove duplicate python3-rich entry from Build-Depends
+    - Update package descriptions
+  * Handle ForeignKey fields returned as nested dicts by API:
+    - Add utils.get_fk_id() to extract FK id from nested dict, int, or None
+    - Update part.create() to use id directly when material field is a dict
+  * Add get_parts_for_magnet() helper in utils.py for nested magnet/parts
+    endpoint; add demo_magnet_parts.py example script
+  * Fix --no-verify SSL flag: suppress InsecureRequestWarning only when
+    explicitly requested; add --no-verify to all demo scripts and CLIContext
+  * Fix get_parts_for_magnet to correctly resolve part objects from magnet
 
- -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 20 Mar 2026 00:00:00 +0100
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 20 Mar 2026 13:40:00 +0100
 
 python-magnetapi (0.1.0-1) unstable; urgency=medium
 
