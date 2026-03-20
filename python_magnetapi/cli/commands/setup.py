@@ -4,10 +4,11 @@ import argparse
 import sys
 from time import sleep
 
+from typing import Any, Dict, List
+
 from ..base import BaseCommand
 from ..context import CLIContext
 from ... import utils
-from ...exceptions import ValidationError
 
 
 class SetupCommand(BaseCommand):
@@ -17,7 +18,11 @@ class SetupCommand(BaseCommand):
     help = "Setup simulation"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure setup command arguments."""
+        """Configure setup command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         parser.add_argument(
             "--mtype",
             help="select object type",
@@ -116,36 +121,20 @@ class SetupCommand(BaseCommand):
                 f" - supported values are {available_methods}"
             )
 
-        available_models = {}
-        for method in available_methods:
-            available_models[method] = [
-                data["model"]
-                for data in response
-                if data["method"] == args.method and data["geometry"] == args.geometry
-            ]
-        if args.model not in available_models[args.method]:
+        available_models = [
+            data["model"]
+            for data in response
+            if data["method"] == args.method and data["geometry"] == args.geometry
+        ]
+        if args.model not in available_models:
             raise RuntimeError(
                 f"{args.model}: unknown model for {args.method} and {args.geometry}"
-                f" geometry - supported values are {available_models[args.method]}"
+                f" geometry - supported values are {available_models}"
             )
 
-        ids = self.get_object_list(context, args.mtype)
-        if args.name not in ids:
-            raise RuntimeError(
-                f"run: cannot found {args.name} in {args.mtype.upper()} objects"
-            )
+        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
-        obj = utils.get_object(
-            context.session,
-            context.web,
-            context.headers,
-            ids[args.name],
-            mtype=args.mtype,
-            verbose=True,
-            debug=context.debug,
-        )
-
-        currents = []
+        currents: List[Dict[str, Any]] = []
         if args.mtype == "site":
             if len(args.current) != len(obj["site_magnets"]):
                 raise RuntimeError(
@@ -162,12 +151,12 @@ class SetupCommand(BaseCommand):
                 raise RuntimeError(
                     f"args.current contains {len(args.current)} values - should have 1 value"
                 )
-            currents.append({"magnet_id": ids[args.name], "value": args.current[0]})
+            currents.append({"magnet_id": obj["id"], "value": args.current[0]})
         print(f"currents: {currents}")
 
         sim_data = {
             "resource_type": args.mtype,
-            "resource_id": ids[args.name],
+            "resource_id": obj["id"],
             "method": args.method,
             "model": args.model,
             "geometry": args.geometry,

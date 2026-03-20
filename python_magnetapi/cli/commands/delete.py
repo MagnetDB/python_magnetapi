@@ -2,7 +2,7 @@
 
 import argparse
 
-from ..base import BaseCommand
+from ..base import BaseCommand, OBJECT_TYPES
 from ..context import CLIContext
 from ... import utils
 from ...exceptions import ResourceNotFoundError
@@ -15,20 +15,16 @@ class DeleteCommand(BaseCommand):
     help = "Delete object"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure delete command arguments."""
+        """Configure delete command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         parser.add_argument(
             "--mtype",
             help="select object type",
             type=str,
-            choices=[
-                "material",
-                "part",
-                "magnet",
-                "site",
-                "record",
-                "server",
-                "simulation",
-            ],
+            choices=OBJECT_TYPES,
             default="magnet",
         )
         parser.add_argument(

@@ -1,11 +1,10 @@
 """Compute command handler."""
 
 import argparse
+from typing import Any, Dict
 
 from ..base import BaseCommand
 from ..context import CLIContext
-from ... import utils
-from ...exceptions import ValidationError
 
 
 class ComputeCommand(BaseCommand):
@@ -15,7 +14,11 @@ class ComputeCommand(BaseCommand):
     help = "Compute inductances, flow parameters, or hoop stress"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure compute command arguments."""
+        """Configure compute command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         parser.add_argument(
             "--mtype",
             help="select object type",
@@ -75,27 +78,15 @@ class ComputeCommand(BaseCommand):
     def _compute_inductances(
         self, args: argparse.Namespace, context: CLIContext
     ) -> None:
-        """Compute self and mutual inductances."""
-        if args.mtype in ["part"]:
-            raise RuntimeError(
-                f"unexpected type {args.mtype} in compute subcommand inductances"
-            )
+        """Compute self and mutual inductances.
 
-        ids = self.get_object_list(context, args.mtype)
-        if args.name not in ids:
-            raise RuntimeError(
-                f"unexpected name {args.name}: no such object found in"
-                f" {args.mtype} list: {list(ids.keys())}"
-            )
+        Args:
+            args: Parsed arguments (requires mtype, name)
+            context: CLI context
+        """
+        self.validate_resource_type(args.mtype, ["magnet", "site", "record"])
 
-        utils.get_object(
-            context.session,
-            context.web,
-            context.headers,
-            ids[args.name],
-            args.mtype,
-            debug=context.debug,
-        )
+        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import inductances
 
@@ -104,7 +95,7 @@ class ComputeCommand(BaseCommand):
             context.session,
             context.web,
             context.headers,
-            oid=ids[args.name],
+            oid=obj["id"],
             mtype=args.mtype,
             debug=context.debug,
         )
@@ -112,27 +103,15 @@ class ComputeCommand(BaseCommand):
     def _compute_flow_params(
         self, args: argparse.Namespace, context: CLIContext
     ) -> None:
-        """Compute flow parameters."""
-        if args.mtype != "magnet":
-            raise RuntimeError(
-                f"unexpected type {args.mtype} in compute subcommand flow_params"
-                " - should be magnet"
-            )
+        """Compute flow parameters.
 
-        ids = self.get_object_list(context, args.mtype)
-        if args.name not in ids:
-            raise RuntimeError(
-                f"cannot found {args.name} in {args.mtype.upper()} objects"
-            )
+        Args:
+            args: Parsed arguments (requires mtype=magnet, name, samples)
+            context: CLI context
+        """
+        self.validate_resource_type(args.mtype, ["magnet"])
 
-        utils.get_object(
-            context.session,
-            context.web,
-            context.headers,
-            ids[args.name],
-            args.mtype,
-            debug=context.debug,
-        )
+        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import flow_params
 
@@ -140,7 +119,7 @@ class ComputeCommand(BaseCommand):
             context.session,
             context.web,
             headers=context.headers,
-            oid=ids[args.name],
+            oid=obj["id"],
             samples=args.samples,
             debug=context.debug,
         )
@@ -148,26 +127,15 @@ class ComputeCommand(BaseCommand):
     def _compute_hoop_stress(
         self, args: argparse.Namespace, context: CLIContext
     ) -> None:
-        """Compute hoop stress."""
-        if args.mtype not in ["part"]:
-            raise RuntimeError(
-                f"unexpected type {args.mtype} in compute subcommand hoop_stress"
-            )
+        """Compute hoop stress.
 
-        ids = self.get_object_list(context, args.mtype)
-        if args.name not in ids:
-            raise RuntimeError(
-                f"cannot found {args.name} in {args.mtype.upper()} objects"
-            )
+        Args:
+            args: Parsed arguments (requires mtype=part, name)
+            context: CLI context
+        """
+        self.validate_resource_type(args.mtype, ["part"])
 
-        utils.get_object(
-            context.session,
-            context.web,
-            context.headers,
-            ids[args.name],
-            args.mtype,
-            debug=context.debug,
-        )
+        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import hoop_stress
 
@@ -176,6 +144,6 @@ class ComputeCommand(BaseCommand):
             context.web,
             headers=context.headers,
             mtype=args.mtype,
-            oid=ids[args.name],
+            oid=obj["id"],
             debug=context.debug,
         )

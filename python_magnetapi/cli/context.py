@@ -1,5 +1,7 @@
 """CLI context and configuration."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Optional
 import requests
@@ -42,13 +44,18 @@ class CLIContext:
         """Whether to verify SSL certificates."""
         return not self.https
 
-    def __enter__(self):
+    def __enter__(self) -> CLIContext:
         """Context manager entry - create session."""
         self.session = requests.Session()
         self.session.verify = self.verify_ssl
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_val: Optional[BaseException],
+        exc_tb: object,
+    ) -> None:
         """Context manager exit - close session."""
         if self.session:
             self.session.close()

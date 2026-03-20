@@ -3,6 +3,7 @@
 import argparse
 import sys
 from time import sleep
+from typing import Any, Dict, Optional
 
 from ..base import BaseCommand
 from ..context import CLIContext
@@ -16,7 +17,11 @@ class RunCommand(BaseCommand):
     help = "Run simulation"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure run command arguments."""
+        """Configure run command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         parser.add_argument(
             "--mtype",
             help="select object type",
@@ -59,7 +64,7 @@ class RunCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        simu = utils.get_object(
+        simu: Optional[Dict[str, Any]] = utils.get_object(
             context.session,
             context.web,
             context.headers,
@@ -73,27 +78,18 @@ class RunCommand(BaseCommand):
                 " - please check simulations list"
             )
 
-        ids = utils.get_list(
+        server_ids: Dict[str, int] = utils.get_list(
             context.session,
             context.web,
             headers=context.headers,
             mtype="server",
             debug=context.debug,
         )
-        if args.compute_server not in ids:
+        if args.compute_server not in server_ids:
             raise RuntimeError(
                 f"{args.compute_server}: cannot found {args.compute_server} in server objects"
             )
-        server_id = ids[args.compute_server]
-
-        utils.get_object(
-            context.session,
-            context.web,
-            context.headers,
-            server_id,
-            mtype="server",
-            debug=context.debug,
-        )
+        server_id: int = server_ids[args.compute_server]
 
         print("Starting simulation...")
         context.session.post(

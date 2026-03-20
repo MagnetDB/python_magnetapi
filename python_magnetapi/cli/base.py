@@ -8,6 +8,17 @@ from .context import CLIContext
 from .. import utils
 from ..exceptions import ResourceNotFoundError, ValidationError
 
+# All resource types supported by MagnetDB
+OBJECT_TYPES: List[str] = [
+    "material",
+    "part",
+    "magnet",
+    "site",
+    "record",
+    "server",
+    "simulation",
+]
+
 
 class BaseCommand(ABC):
     """Base class for all CLI command handlers.

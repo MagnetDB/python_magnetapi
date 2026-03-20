@@ -4,6 +4,7 @@
 
 import os
 import sys
+from typing import List, Optional
 
 from .parser import create_parser
 from .context import CLIContext
@@ -11,11 +12,11 @@ from .commands import COMMANDS
 from ..exceptions import MagnetAPIException, AuthenticationError
 
 
-def main(argv=None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entry point.
 
     Args:
-        argv: Command-line arguments (for testing)
+        argv: Command-line arguments (for testing); uses sys.argv if None
 
     Returns:
         Exit code (0 for success)

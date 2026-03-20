@@ -13,7 +13,11 @@ class ProcessCommand(BaseCommand):
     help = "Process simulation results (not yet implemented)"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure process command arguments."""
+        """Configure process command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         pass
 
     def execute(self, args: argparse.Namespace, context: CLIContext) -> int:

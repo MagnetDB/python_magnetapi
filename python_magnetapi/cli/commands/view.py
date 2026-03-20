@@ -2,8 +2,9 @@
 
 import argparse
 import json
+from typing import Any, Dict
 
-from ..base import BaseCommand
+from ..base import BaseCommand, OBJECT_TYPES
 from ..context import CLIContext
 
 
@@ -14,20 +15,16 @@ class ViewCommand(BaseCommand):
     help = "View object details"
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
-        """Configure view command arguments."""
+        """Configure view command arguments.
+
+        Args:
+            parser: Subparser for this command
+        """
         parser.add_argument(
             "--mtype",
             help="select object type",
             type=str,
-            choices=[
-                "material",
-                "part",
-                "magnet",
-                "site",
-                "record",
-                "server",
-                "simulation",
-            ],
+            choices=OBJECT_TYPES,
             default="magnet",
         )
         parser.add_argument(
@@ -47,10 +44,7 @@ class ViewCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        ids = self.get_object_list(context, args.mtype)
-        print(f"view: ids={ids}")
-
-        obj = self.get_object_by_name(context, args.mtype, args.name)
+        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
         print(f"{args.name}:\n{json.dumps(obj, indent=4)}")
 
         return 0
