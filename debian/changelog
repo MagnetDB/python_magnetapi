@@ -31,8 +31,15 @@ python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
   * Fix --no-verify SSL flag: suppress InsecureRequestWarning only when
     explicitly requested; add --no-verify to all demo scripts and CLIContext
   * Fix get_parts_for_magnet to correctly resolve part objects from magnet
+  * Add type hints and docstrings to domain modules:
+    - utils.py: requests.Session type on all session params; return types on
+      all functions (dict|None, list|None, str|None, etc.); full Args/Returns/
+      Raises docstrings
+    - material.py, part.py, magnet.py, record.py, site.py, attachment.py:
+      requests.Session type on session param; return type annotations;
+      expanded docstrings with Args, Returns, and Raises sections
 
- -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 20 Mar 2026 13:40:00 +0100
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 20 Mar 2026 14:00:00 +0100
 
 python-magnetapi (0.1.0-1) unstable; urgency=medium
 
