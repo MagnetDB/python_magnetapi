@@ -1,111 +1,155 @@
 # Tier 1 Debian Packaging Modernization Prompt
 
 ## IMPROVEMENT FOCUS: Debian Packaging Modernization
-**PRIORITY TIER**: 1 (Foundation)  
-**SCOPE**: Debian packaging configuration files (debian/ directory)  
-**ESTIMATED COMPLEXITY**: Medium  
-**BLOCKING OTHER WORK**: Yes - packaging consistency affects distribution  
+**PRIORITY TIER**: 1 (Foundation)
+**SCOPE**: Debian packaging configuration files (debian/ directory)
+**ESTIMATED COMPLEXITY**: Low — most modernization already done, cleanup remaining
+**STATUS**: 🛠️ IN PROGRESS — foundation complete, cleanup needed
 
 ---
 
-## CURRENT STATE
+## CURRENT STATE (as of 2026-03-20)
 
-### What Exists Now
+### What Has Been Done ✅
 
-The python-magnetapi package currently uses:
-- **debhelper-compat version 12** (outdated, released 2019)
-- **dh-python** in Build-Depends (legacy)
-- **pybuild** without explicit pybuild-plugin-pyproject
-- **Standards-Version 4.5.1** (from 2020)
-- **Manual build rules** with custom PYBUILD_NAME export
+- **debhelper-compat 13** — upgraded (was 12)
+- **Standards-Version 4.7.0** — updated (was 4.5.1)
+- **pybuild-plugin-pyproject** — explicitly declared in Build-Depends
+- **`--with python3` removed** from debian/rules (no longer needed)
+- **`override_dh_auto_test`** — skips tests with informative message
+- **Runtime dependencies expanded** — requests, pandas, numpy, scipy, param, rich, magnetsetup, magnetcooling, magnettools all declared
+- **Homepage field** — added to debian/control
+- **Version 0.1.1-1** — debian/changelog up to date (CLI refactoring + packaging update documented)
 
-### Current debian/control
+### Current debian/control (actual file)
+
 ```
-Build-Depends: debhelper-compat (= 12),
+Source: python-magnetapi
+Section: python
+Priority: optional
+Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
+Build-Depends: debhelper-compat (= 13),
  dh-python,
+ pybuild-plugin-pyproject,
  python3-setuptools,
  python3-all,
- python3-magnetrun,
+ pybuild-plugin-pyproject,          ← DUPLICATE
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
  python3-magnetsetup,
- python3-rich
-Standards-Version: 4.5.1
+ python3-magnetcooling,
+ python3-magnettools                ← MISSING TRAILING COMMA
+ python3-rich                       ← DUPLICATE (no comma separator)
+Standards-Version: 4.7.0
+Homepage: https://github.com/MagnetDB/python_magnetapi
+#Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+#Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+#Testsuite: autopkgtest-pkg-python
+Rules-Requires-Root: no
 ```
 
-### Current debian/rules
+### Current debian/rules (actual file)
+
 ```makefile
+#!/usr/bin/make -f
+
 export PYBUILD_NAME=magnetapi
+
 %:
-	dh $@ --with python3 --buildsystem=pybuild
+	dh $@ --buildsystem=pybuild
+
+# Sphinx build commented out (kept for reference)
+#override_dh_auto_build: ...
+
+override_dh_auto_test:
+	@echo "Skipping tests - requires external MagnetDB API server"
+	@echo "Set MAGNETDB_API_SERVER and MAGNETDB_API_KEY environment variables to run tests"
 ```
 
-### Why This Is Problematic
+### Current debian/changelog (latest entry)
 
-1. **Outdated debhelper**: Version 12 (2019) is 5+ years old
-   - Missing security patches
-   - No support for modern Python packaging (PEP 517/518)
-   - Tools expect debhelper >= 13
+```
+python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
 
-2. **Implicit pybuild behavior**: 
-   - pybuild-plugin-pyproject is not explicitly declared
-   - Risk of fallback to legacy setup.py behavior (which we removed)
-   - Unpredictable behavior across different Debian versions
+  * rebuild for trixie
+  * Refactor CLI module into modular package structure
+  * Add type hints and docstrings throughout cli/ package
+  * Fix logic bug in setup command available_models validation
+  * Eliminate redundant API calls in view and compute commands
+  * Update pyproject.toml to declare cli/ sub-packages
+  * Modernize Debian packaging:
+    - Update Standards-Version to 4.7.0
 
-3. **Legacy dh-python dependency**:
-   - Not needed when using pybuild with pyproject.toml
-   - Can be removed to simplify dependencies
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 20 Mar 2026 00:00:00 +0100
+```
 
-4. **Outdated Standards-Version**:
-   - Current Debian standard is 4.7.0+ (as of 2024)
-   - Signals outdated packaging practices
+---
 
-5. **Version consistency**:
-   - debian/changelog shows version 0.0.1 series
-   - pyproject.toml has version 0.1.0
-   - Inconsistency that must be fixed
+## REMAINING ISSUES
+
+### 1. Duplicate and broken entries in debian/control Build-Depends
+
+The current Build-Depends has two bugs that will cause `dpkg-buildpackage` to either warn or fail:
+
+- `pybuild-plugin-pyproject` listed **twice**
+- `python3-rich` listed **twice** (once inside the block with a comma, once at the end without a comma separator after `python3-magnettools`)
+- Missing comma after `python3-magnettools` line (syntax error)
+
+**Fix**: Clean up to a single, correctly comma-separated list.
+
+### 2. `dh-python` still in Build-Depends
+
+With `pybuild-plugin-pyproject` explicit and `--with python3` removed from rules, `dh-python` is no longer needed as a Build-Depends. It can be dropped.
+
+### 3. `python3-setuptools` still in Build-Depends
+
+`setup.py` was removed; the project is pure pyproject.toml. `python3-setuptools` is not needed at build time with `pybuild-plugin-pyproject`.
+
+### 4. `Vcs-Browser` and `Vcs-Git` still commented out
+
+These fields should be uncommented — the GitHub repository is public and the URL is known.
+
+### 5. debian/changelog entry timestamp
+
+The current entry has a placeholder timestamp (`00:00:00`). Should be set to the actual release time when releasing.
 
 ---
 
 ## DESIRED STATE
 
-### What We Want to Achieve
+### Clean debian/control Build-Depends
 
-A modernized, standards-compliant Debian package that:
+```
+Build-Depends: debhelper-compat (= 13),
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
+ python3-magnetsetup,
+ python3-magnetcooling,
+ python3-magnettools
+```
 
-1. **Uses current debhelper** (13 or 14)
-   - Modern PEP 517/518 support
-   - Security patches included
-   - Proper pyproject.toml handling
+Removed: `dh-python`, `python3-setuptools`, duplicates.
 
-2. **Explicitly uses pybuild-plugin-pyproject**
-   - No ambiguity about build backend
-   - Guaranteed to use PEP 517/518 build system
-   - Works across Debian 11, 12, 13+ consistently
+### Uncommented Vcs fields
 
-3. **Removes legacy dependencies**
-   - No dh-python (handled by pybuild-plugin-pyproject)
-   - Cleaner, more minimal Build-Depends
+```
+Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+```
 
-4. **Updates Standards-Version**
-   - Current standard compliance (4.7.0)
-   - Signals actively maintained package
+### debian/rules — no changes needed
 
-5. **Resolves version consistency**
-   - Single source of truth: pyproject.toml
-   - debian/changelog next entry will bump to 0.1.0
-   - Consistent across all configuration
-
-### Success Criteria
-
-✅ debian/control updated with modern build requirements  
-✅ debian/rules simplified and modernized  
-✅ pybuild-plugin-pyproject explicitly declared and working  
-✅ Standards-Version updated to current (4.7.0)  
-✅ dh-python removed from dependencies  
-✅ debhelper-compat updated to 13 or 14  
-✅ Version consistency between pyproject.toml and debian/changelog  
-✅ Debian package builds successfully on Debian 12/13  
-✅ Package is installable and functional after build  
-✅ All changes documented in debian/changelog  
+The current rules file is correct and clean. `PYBUILD_NAME=magnetapi` is still needed so pybuild installs the package under the right name.
 
 ---
 
@@ -113,204 +157,141 @@ A modernized, standards-compliant Debian package that:
 
 ### Must Maintain
 
-- **Backward compatibility**: Package must still install on Debian 11+ (bullseye or later)
-- **Functionality**: No changes to what the package does
-- **Target distros**: Works on Debian bookworm (12) and later
-- **Build isolation**: Clean builds without residual files
-
-### Cannot Break
-
-- Existing CI/CD pipelines (if any)
-- Package naming (python3-magnetapi)
-- Installation paths
-- Dependencies on python3-magnetrun, python3-magnetsetup, python3-rich
-- Functionality of installed scripts and modules
+- **Target distros**: Debian 12 (bookworm) and 13 (trixie)
+- **Package naming**: `python3-magnetapi`
+- **Runtime Depends**: All entries in the `Depends:` stanza are correct — do not remove
+- **`override_dh_auto_test`**: Keep — tests need external API server
 
 ### Safe to Change
 
-- Build system declarations
-- Build-time dependencies (not runtime)
-- Standards compliance version
-- Helper tool versions
-- debian/rules implementation details
-- debian/control Build-Depends
-
----
-
-## TECHNICAL DETAILS TO REVIEW
-
-### Key Questions to Answer
-
-1. **Python version support**: pyproject.toml requires Python 3.11+
-   - Does Debian 12 default Python support 3.11? (Yes - python3 is 3.11.2)
-   - Should we add explicit python3.11-* build-depends? (No - python3-all covers it)
-
-2. **Runtime vs Build dependencies**:
-   - runtime: python3-magnetrun, python3-magnetsetup, python3-rich
-   - build-time: Should we add python3-dev? (Not needed with pybuild)
-   - build-time: Do we need python3-magnetrun, python3-magnetsetup at build time? (Check if needed for tests)
-
-3. **Test execution**:
-   - Current debian/rules has: `override_dh_auto_test: echo "skip dh_auto_test"`
-   - Should we keep skipping tests? (Depends on CI/CD strategy)
-   - Tests need MAGNETDB_API_SERVER to run (external dependency)
-
-4. **Documentation build**:
-   - Sphinx is optional (in [project.optional-dependencies])
-   - No documentation is currently built
-   - Is this intentional or can we skip it? (Skip for now - keep Tier 3)
-
-### Debian Compatibility Matrix
-
-| Aspect | Debian 11 (bullseye) | Debian 12 (bookworm) | Debian 13 (trixie) |
-|--------|----------------------|----------------------|-------------------|
-| Python 3.11 | Available (backports) | Yes (default) | Yes |
-| debhelper 13 | Available | Yes | Yes |
-| debhelper 14 | Not by default | Available | Yes |
-| pybuild-plugin-pyproject | Available | Yes | Yes |
-
-**Recommendation**: Target debhelper 13 (works on Debian 11+, good compromise)
-
----
-
-## FILES TO MODIFY
-
-### Primary Changes
-
-**1. debian/control** - CRITICAL
-- Update Build-Depends
-- Update Standards-Version
-- Verify Depends list
-
-**2. debian/rules** - IMPORTANT
-- Simplify if possible
-- Ensure consistent with modern pybuild
-
-**3. debian/changelog** - REQUIRED
-- Add entry for next version (0.1.0-1)
-- Document Debian packaging modernization
-
-### Secondary Review (No changes needed unless issues found)
-
-- debian/copyright - verify formatting
-- debian/watch - verify it still works
-- debian/source/format - should stay "3.0 (quilt)"
-- debian/source/options - OK as-is (egg-info ignore)
+- Build-Depends (build-time only)
+- Vcs fields (informational)
+- Duplicate/broken entries cleanup
 
 ---
 
 ## IMPLEMENTATION STEPS
 
-### Phase 1: Analysis & Planning
+### Step 1: Fix debian/control
+
+Remove duplicates, drop unneeded build-time deps, uncomment Vcs fields.
+
+**Target debian/control:**
+
 ```
-1. Review current Build-Depends and their purposes
-2. Verify pybuild-plugin-pyproject availability on target distros
-3. Check if any build-time dependencies are actually needed
-4. Confirm test execution requirements
+Source: python-magnetapi
+Section: python
+Priority: optional
+Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
+Build-Depends: debhelper-compat (= 13),
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
+ python3-magnetsetup,
+ python3-magnetcooling,
+ python3-magnettools
+Standards-Version: 4.7.0
+Homepage: https://github.com/MagnetDB/python_magnetapi
+Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+Rules-Requires-Root: no
+
+Package: python3-magnetapi
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends},
+ python3-requests,
+ python3-pandas,
+ python3-numpy,
+ python3-scipy,
+ python3-param,
+ python3-rich,
+ python3-magnetsetup,
+ python3-magnetcooling,
+ python3-magnettools
+Suggests: python-magnetapi-doc
+Description: Python library and CLI for interacting with MagnetDB
+ Python MagnetAPI provides utilities to interact with MagnetDB, a database
+ for magnetic materials, parts, magnets, and sites.
+ .
+ Features include:
+  - Listing, viewing, creating, and deleting database objects
+  - Setting up and running simulations
+  - Computing derived quantities (inductances, flow parameters, hoop stress)
+  - Post-processing simulation results
+ .
+ This package installs the library for Python 3.
+
+Package: python-magnetapi-doc
+Architecture: all
+Section: doc
+Depends: ${sphinxdoc:Depends}, ${misc:Depends}
+Description: Python library and CLI for MagnetDB (documentation)
+ Python MagnetAPI provides utilities to interact with MagnetDB, a database
+ for materials, parts, magnets, and sites.
+ .
+ This package provides the common documentation including Sphinx-generated
+ HTML documentation, API reference, and usage guides.
 ```
 
-### Phase 2: Update debian/control
-```
-Suggested changes:
-- Build-Depends: debhelper-compat (= 13),
-                 pybuild-plugin-pyproject,
-                 python3-all,
-                 python3-magnetrun,
-                 python3-magnetsetup,
-                 python3-rich
-- Standards-Version: 4.7.0
-- Add Vcs-* fields (GitHub URLs)
-```
+### Step 2: Update debian/changelog
 
-### Phase 3: Update debian/rules
+Add new entry for the cleanup:
+
 ```
-Simplify to:
-#!/usr/bin/make -f
+python-magnetapi (0.1.1-2) UNRELEASED; urgency=low
 
-%:
-	dh $@ --buildsystem=pybuild
+  * Fix Build-Depends: remove duplicate pybuild-plugin-pyproject and
+    python3-rich entries; remove unused dh-python and python3-setuptools
+  * Uncomment Vcs-Browser and Vcs-Git fields
 
-override_dh_auto_test:
-	echo "Skipping tests - requires external MagnetDB API server"
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  DATE
 ```
 
-### Phase 4: Update debian/changelog
-```
-Add entry:
-python-magnetapi (0.1.0-1) UNRELEASED; urgency=medium
+Or fold into the existing `0.1.1-1 UNRELEASED` entry since it hasn't been released yet.
 
-  * Modernize Debian packaging
-  * Update debhelper-compat to 13
-  * Use pybuild-plugin-pyproject explicitly
-  * Update Standards-Version to 4.7.0
-  * Remove legacy dh-python dependency
+### Step 3: Verify Build
 
- -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  YYYY-MM-DD HH:MM:SS +0200
-```
-
-### Phase 5: Verify Build
-```
-Test build in clean environment:
-- dpkg-buildpackage -F
-- Check for lintian warnings
-- Verify package contents
-- Verify installation works
-```
-
----
-
-## POTENTIAL ISSUES & MITIGATIONS
-
-### Issue 1: pybuild-plugin-pyproject Not Available
-**Risk**: Low (available in Debian 11+)  
-**Mitigation**: Falls back to auto-detection, but explicit is better  
-**Action**: Explicitly declare it
-
-### Issue 2: Build Fails Due to Missing Imports
-**Risk**: Medium (if test imports are needed at build time)  
-**Mitigation**: Keep runtime deps in Build-Depends if needed  
-**Action**: Try minimal first, add back if build fails
-
-### Issue 3: lintian Warnings
-**Risk**: Medium (new debhelper version may have new checks)  
-**Mitigation**: Review warnings, they're often informational  
-**Action**: Fix only blockers, document intentional overrides
-
-### Issue 4: Version Mismatch in debian/changelog
-**Risk**: High (already present)  
-**Mitigation**: Next entry should be 0.1.0-1 to match pyproject.toml  
-**Action**: Set correctly in new changelog entry
-
----
-
-## TESTING STRATEGY
-
-### Before Changes
 ```bash
-# Build current package
-dpkg-buildpackage -F
-dpkg -l | grep python-magnetapi
-python3 -c "import python_magnetapi; print(python_magnetapi.__version__)"
-```
-
-### After Changes
-```bash
-# Build modernized package
-dpkg-buildpackage -F
-lintian -i *.deb
-dpkg -l | grep python-magnetapi
-python3 -c "import python_magnetapi; print(python_magnetapi.__version__)"
+dpkg-buildpackage -F --no-sign
+lintian -i ../*.deb
+dpkg -c ../*.deb
 python3 -m python_magnetapi.cli --help
 ```
 
-### Verification Checklist
-- [ ] Package builds without errors
-- [ ] No critical lintian warnings
-- [ ] Package installs correctly
-- [ ] Imported modules work
-- [ ] CLI is accessible
-- [ ] Version is correct (0.1.0)
-- [ ] Maintainer info is correct
+---
+
+## SUCCESS CRITERIA
+
+- [x] debhelper-compat 13
+- [x] pybuild-plugin-pyproject declared
+- [x] Standards-Version 4.7.0
+- [x] `--with python3` removed from rules
+- [x] override_dh_auto_test skips with clear message
+- [x] Version 0.1.1-1 in changelog
+- [ ] Duplicate Build-Depends entries removed
+- [ ] `dh-python` removed from Build-Depends
+- [ ] `python3-setuptools` removed from Build-Depends
+- [ ] Vcs-Browser / Vcs-Git uncommented
+- [ ] Package builds without lintian errors
+- [ ] `python -m python_magnetapi.cli --help` works after install
+
+---
+
+## DEBIAN COMPATIBILITY MATRIX
+
+| Aspect | Debian 11 (bullseye) | Debian 12 (bookworm) | Debian 13 (trixie) |
+|--------|----------------------|----------------------|-------------------|
+| Python 3.11 | Backports only | Yes (default) | Yes |
+| debhelper 13 | Yes | Yes | Yes |
+| pybuild-plugin-pyproject | Yes | Yes | Yes |
+| python3-magnetcooling | From repo | From repo | From repo |
+
+**Primary target**: Debian 13 (trixie) — `UNRELEASED` in changelog reflects this.
 
 ---
 
@@ -318,123 +299,38 @@ python3 -m python_magnetapi.cli --help
 
 ```
 debian/
-├── control              # Package metadata (needs update)
-├── rules                # Build rules (can simplify)
-├── changelog            # Version history (needs new entry)
-├── copyright            # License info (OK)
-├── watch                # Upstream tracking (OK)
+├── control              # Needs duplicate/syntax cleanup
+├── rules                # OK — clean and correct
+├── changelog            # 0.1.1-1 UNRELEASED, needs timestamp fix on release
+├── copyright            # OK
+├── watch                # OK
+├── patches/series       # OK (empty)
 ├── source/
-│   ├── format           # "3.0 (quilt)" (OK)
-│   └── options          # egg-info ignore (OK)
-├── python-magnetapi-docs.docs  # Doc package (OK)
-└── README.Debian        # Release notes (informational)
+│   ├── format           # "3.0 (quilt)" — OK
+│   └── options          # egg-info ignore — OK
+├── python-magnetapi-docs.docs  # Doc package — OK
+├── README.Debian        # Informational — OK
+└── README.source        # OK
 ```
 
 ---
 
-## WHAT CLAUDE SHOULD DO
+## FOLLOW-UP ACTIONS (After This Cleanup)
 
-1. **Review current debian/control and debian/rules** - identify all legacy elements
-2. **Propose updated versions** - show what each file should look like
-3. **Explain each change** - why we're making it
-4. **Show the diff** - before/after comparison
-5. **Suggest verification steps** - how to test the changes work
-6. **Provide updated debian/changelog entry** - with proper format and message
-
----
-
-## EXPECTED OUTCOME
-
-After this improvement:
-
-**Version Control**
-- Consistent version across pyproject.toml, __init__.py, and debian/changelog
-- Next release will be 0.1.0-1
-
-**Build System**
-- Modern debhelper (13) with pyproject.toml native support
-- Explicit pybuild-plugin-pyproject usage
-- Simplified debian/rules
-- Removed legacy dependencies
-
-**Compliance**
-- Standards-Version 4.7.0 (current)
-- No breaking changes
-- Works on Debian 12+ (primary target)
-- Backward compatible with Debian 11 if needed
-
-**Maintainability**
-- Clearer what the build system expects
-- Less mystery around tool versions
-- Easier to update in future
-- Signals actively maintained project
-
----
-
-## FOLLOW-UP ACTIONS (After This Tier 1 Task)
-
-Once Debian packaging is modernized:
-- Tier 1 Task 2: Version consistency across all files (if not done here)
-- Tier 1 Task 3: Error handling framework in python_magnetapi/
-- Tier 1 Task 4: Type hints and mypy configuration
+Once debian/control is clean:
+- Propagate custom exception hierarchy across domain modules (error handling)
+- Complete type hints for utils.py, part.py, magnet.py, site.py, record.py
+- Consider enabling `Testsuite: autopkgtest-pkg-python` once unit tests don't need external API
 
 ---
 
 ## Document Information
 
-**Prompt Type**: Actionable Tier 1 Improvement  
-**Component**: Debian Packaging (debian/ directory)  
-**Scope**: Build configuration modernization  
-**Estimated Time**: 1-2 hours (analysis + implementation + testing)  
-**Difficulty**: Medium (configuration work, not code)  
-**Risk Level**: Low (non-core code changes)  
-
----
-
-## How to Start
-
-**Use this prompt by saying:**
-
-> "I want to modernize the Debian packaging for python-magnetapi to Tier 1 standards. Please review the current debian/control and debian/rules files and propose a modernized version using debhelper-compat (= 13) and explicit pybuild-plugin-pyproject support. Then show me what the updated files should look like and how to verify they work."
-
-**Or provide this entire prompt and say:**
-
-> "Here's a detailed prompt for Debian packaging modernization. Please follow this structure: first analyze the current state, then propose changes, then show the implementation, and finally suggest verification steps."
-
----
-
-## Key Learnings from Similar Projects
-
-From python-magnetsetup and python-magnetrun (sibling projects):
-- Both use similar architecture (pyproject.toml + Debian packaging)
-- Similar runtime dependencies on param, rich, etc.
-- Could align packaging approaches across projects
-- devcontainer setup has proven effective
-
----
-
-## Questions to Clarify (If Needed)
-
-Before starting:
-
-1. **Do you want Python 3.11-specific package support?**
-   - Currently Python 3.11+ general, should we specify python3.11?
-   - Answer: No - let distro default python3 handle it
-
-2. **Should documentation generation be added?**
-   - Sphinx is optional, not currently used
-   - Answer: No - that's Tier 3, keep packaging minimal
-
-3. **What's the target distribution list?**
-   - Primary: Debian 12 (bookworm)
-   - Support: Debian 11+ if possible
-   - Answer: Use debhelper 13 as compromise
-
-4. **Should we add GitHub VCS fields?**
-   - Would help users find repository
-   - Not breaking, good practice
-   - Answer: Yes, add Vcs-Browser and Vcs-Git
-
----
-
-**Ready to proceed? Provide this prompt to Claude and request the implementation!**
+**Prompt Type**: Actionable Tier 1 Improvement
+**Component**: Debian Packaging (debian/ directory)
+**Scope**: Build configuration cleanup
+**Estimated Time**: 30 minutes (cleanup + verify)
+**Difficulty**: Low (configuration cleanup only)
+**Risk Level**: Low
+**Last Updated**: 2026-03-20
+**Version**: 2.0

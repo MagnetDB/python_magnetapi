@@ -2,20 +2,22 @@
 
 ## Task Overview
 
-**Priority**: Tier 1 (High Impact, Foundation) - Partial  
-**Status**: Minimal type hints exist  
-**Estimated Effort**: Large (affects all ~15 Python modules)  
-**Breaking Changes**: No (type hints are optional at runtime)  
+**Priority**: Tier 1 (High Impact, Foundation) - Partial
+**Status**: 🛠️ IN PROGRESS — CLI fully typed; domain modules pending
+**Estimated Effort**: Medium (CLI done; ~10 domain/utility modules remaining)
+**Breaking Changes**: No (type hints are optional at runtime)
 
 ## Current State Analysis
 
-### What Exists ✓
+### What Exists ✅
+- ✅ Full type hints and docstrings in all `python_magnetapi/cli/` modules (context, base, parser, all commands)
+- ✅ `get_fk_id()` in `utils.py` uses modern `int | None` union syntax
 - ✅ Basic type hints in some function signatures (`api_server: str`, `verbose: bool`, etc.)
 - ✅ Minimal typing imports in `hoop_stress.py` and `hoop_stress_parallel.py` (`from typing import Sequence`)
 - ✅ Python 3.11+ support (modern type hint syntax available)
 
 ### What's Missing ❌
-- ❌ **No return type annotations** on most functions
+- ❌ **Domain modules not typed** — `utils.py` (763 lines), `part.py`, `magnet.py`, `site.py`, `record.py`, `material.py` lack return annotations
 - ❌ **No py.typed marker** - Package not recognized as typed by type checkers
 - ❌ **No mypy configuration** - No static type checking setup
 - ❌ **Inconsistent type hints** - Some functions have partial hints, others have none
