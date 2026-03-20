@@ -179,12 +179,12 @@ def _detect_imax_from_files(
             ):
                 tformat = "%Y.%m.%d %H:%M:%S"
                 t0 = datetime.datetime.strptime(
-                    _df["Date"].iloc[0] + " " + _df["Time"].iloc[0], tformat
+                    f"{_df['Date'].iloc[0]} {_df['Time'].iloc[0]}", tformat
                 )
                 _df["t"] = _df.apply(
                     lambda row: (
                         datetime.datetime.strptime(
-                            row.Date + " " + row.Time, tformat
+                            f"{row.Date} {row.Time}", tformat
                         )
                         - t0
                     ).total_seconds(),

@@ -757,12 +757,9 @@ def plot_hoop_stats(
     # ── stdout table ─────────────────────────────────────────────────────────
     try:
         from tabulate import tabulate
-        print("\n" + tabulate(
-            stats_df.round(2),
-            headers="keys", tablefmt="rounded_outline",
-        ))
+        print(f"\n{tabulate(stats_df.round(2), headers='keys', tablefmt='rounded_outline')}")
     except ImportError:
-        print("\n" + stats_df.round(2).to_string())
+        print(f"\n{stats_df.round(2).to_string()}")
 
     if savepath:
         fig.savefig(savepath, dpi=150, bbox_inches="tight")
