@@ -2,10 +2,11 @@
 
 ## Task Overview
 
-**Priority**: Tier 1 (High Impact, Foundation) - Partial  
-**Status**: Minimal type hints exist  
-**Estimated Effort**: Large (affects all ~15 Python modules)  
-**Breaking Changes**: No (type hints are optional at runtime)  
+**Priority**: Tier 1 (High Impact, Foundation) - Partial
+**Status**: 🛠️ IN PROGRESS - CLI modules complete; domain modules remaining
+**Progress**: Type hints and docstrings added to all cli/ modules (commit 9e7ce6e); pyproject.toml references py.typed but file is missing
+**Remaining**: material.py, part.py, magnet.py, site.py, record.py, utils.py, attachment.py; add py.typed marker; configure mypy
+**Breaking Changes**: No (type hints are optional at runtime)
 
 ## Current State Analysis
 

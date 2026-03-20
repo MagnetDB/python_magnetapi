@@ -2,10 +2,10 @@
 
 ## Task Overview
 
-**Priority**: Tier 1 (High Impact, Foundation)  
-**Status**: Not Started  
-**Estimated Effort**: Medium-Large (affects ~15-20 files)  
-**Breaking Changes**: Yes (functions returning `None` will raise exceptions)  
+**Priority**: Tier 1 (High Impact, Foundation)
+**Status**: ✅ COMPLETED (commit c06e34c, branch master)
+**Result**: exceptions.py added with MagnetAPIException base class and full exception hierarchy; context support for status_code, url, response
+**Remaining**: Systematic adoption across all domain modules still in progress
 
 ## Current State Analysis
 

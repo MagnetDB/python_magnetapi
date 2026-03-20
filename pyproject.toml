@@ -59,7 +59,11 @@ Documentation = "https://github.com/MagnetDB/python_magnetapi"
 "Bug Tracker" = "https://github.com/MagnetDB/python_magnetapi/issues"
 
 [tool.setuptools]
-packages = ["python_magnetapi"]
+packages = [
+    "python_magnetapi",
+    "python_magnetapi.cli",
+    "python_magnetapi.cli.commands",
+]
 
 [tool.setuptools.package-data]
 python_magnetapi = ["py.typed"]

@@ -304,9 +304,26 @@ with requests.Session() as s:
 
 ## Testing
 
-### Running the test suite
+The test suite is split into two tiers:
 
-Tests require a running MagnetDB instance and a valid API key:
+| Tier | Location | Requires live server? |
+|------|----------|-----------------------|
+| CLI unit/integration | `tests/cli/` | No — uses mocks |
+| API integration | `tests/test_list.py` | Yes |
+
+### CLI tests (no server required)
+
+```bash
+# Run only the CLI tests
+pytest tests/cli/ --verbose
+
+# Run with coverage
+pytest tests/cli/ --cov=python_magnetapi.cli --cov-report=term
+```
+
+### Full integration tests
+
+API integration tests require a running MagnetDB instance and a valid API key:
 
 ```bash
 export MAGNETDB_API_KEY=your_api_key_here
@@ -333,16 +350,26 @@ pytest --verbose
 
 ### Writing new tests
 
-Tests live in the `tests/` directory. Create files following the `test_*.py` naming convention:
+Tests live in the `tests/` directory. Create files following the `test_*.py` naming convention.
+CLI command handlers can be tested without a live server by mocking `utils.get_list` and
+`utils.get_object`:
 
 ```python
 import pytest
-from python_magnetapi import utils
+from unittest.mock import patch, Mock
+from python_magnetapi.cli.commands.list import ListCommand
+from python_magnetapi.cli.context import CLIContext
 
-class TestUtils:
-    def test_get_list(self):
-        """Test listing objects from the API."""
-        # ...
+def test_list_command():
+    context = Mock(spec=CLIContext)
+    context.web = "http://test:8000"
+    context.headers = {"Authorization": "key"}
+    context.debug = False
+
+    with patch("python_magnetapi.utils.get_list", return_value={"M10": 1}):
+        cmd = ListCommand()
+        args = Mock(mtype="magnet", filters=None)
+        assert cmd.execute(args, context) == 0
 ```
 
 Pytest configuration is defined in `pyproject.toml` under `[tool.pytest.ini_options]`.
@@ -352,14 +379,31 @@ Pytest configuration is defined in `pyproject.toml` under `[tool.pytest.ini_opti
 ```
 python_magnetapi/
 ├── __init__.py          # Package metadata and version
-├── cli.py               # CLI entry point with subcommands
+├── cli/                 # CLI package
+│   ├── __init__.py      # Entry point — main() function
+│   ├── base.py          # BaseCommand ABC and OBJECT_TYPES constant
+│   ├── context.py       # CLIContext dataclass (session, headers, URL)
+│   ├── parser.py        # Argument parser factory
+│   └── commands/        # One module per subcommand
+│       ├── list.py
+│       ├── view.py
+│       ├── create.py
+│       ├── delete.py
+│       ├── setup.py
+│       ├── run.py
+│       ├── compute.py
+│       └── process.py
 ├── utils.py             # Core API interaction utilities
 ├── material.py          # Material-specific operations
 ├── part.py              # Part-specific operations
 ├── magnet.py            # Magnet-specific operations
 ├── site.py              # Site-specific operations
 └── ...
-tests/                   # Test suite
+tests/
+├── cli/                 # Unit/integration tests for the CLI (no server needed)
+│   ├── test_list_command.py
+│   └── test_cli_integration.py
+└── test_list.py         # Integration tests (require a running MagnetDB instance)
 debian/                  # Debian packaging files
 .devcontainer/           # Docker/DevContainer configuration
 pyproject.toml           # Project metadata and build configuration
