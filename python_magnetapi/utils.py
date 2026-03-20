@@ -193,9 +193,7 @@ def get_parts_for_magnet(
 
     r = session.get(f"{api_server}/api/magnets/{magnet_id}/parts", headers=headers)
     if r.status_code != 200:
-        print(
-            f"get_parts_for_magnet: {r.status_code} for magnet {magnet_id}"
-        )
+        print(f"get_parts_for_magnet: {r.status_code} for magnet {magnet_id}")
         return []
 
     rows = r.json()
@@ -205,24 +203,42 @@ def get_parts_for_magnet(
     if not rows:
         return []
 
-    # If the first row looks like a Part (has "name"), return as-is.
-    if "name" in rows[0]:
-        return rows
+    print(
+        f"get_parts_for_magnet: {len(rows['parts'])} parts found for magnet {magnet_id}"
+    )
+    print(
+        f"get_parts_for_magnet: {[magnet_part.get('part').get('id') for magnet_part in rows['parts']]} parts found for magnet {magnet_id}"
+    )
 
-    # Otherwise treat as MagnetPart join rows and fetch each Part individually.
     parts = []
+
     seen = set()
-    for row in rows:
-        part_id = row.get("part_id")
+    for i, magnet_part in enumerate(rows["parts"]):
+        part_id = magnet_part.get("part").get("id")
         if part_id is None or part_id in seen:
             continue
-        seen.add(part_id)
-        part = get_object(
-            session, api_server, headers, part_id, mtype="part",
-            verbose=verbose, debug=debug,
-        )
-        if part:
-            parts.append(part)
+        try:
+            print(
+                f"get_parts_for_magnet: part[{i}] = id={part_id}", end=", ", flush=True
+            )
+            seen.add(part_id)
+            part = get_object(
+                session,
+                api_server,
+                headers,
+                part_id,
+                mtype="part",
+                verbose=verbose,
+                debug=debug,
+            )
+            print(
+                f"name={part.get('name')}, type={part.get('type')}, material={part.get('material').get('name') if part.get('material') else None}"
+            )
+            if part:
+                parts.append(part)
+        except Exception as e:
+            print(f"Error fetching part with id {part_id}: {e}")
+
     return parts
 
 
