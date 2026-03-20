@@ -79,6 +79,7 @@ import pandas as pd
 import requests
 
 from python_magnetapi import utils
+from python_magnetapi.cli.parser import add_server_arguments
 
 # ── Optional magnettools import ──────────────────────────────────────────────
 try:
@@ -613,12 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # ── server ──
-    srv_grp = p.add_argument_group("API server")
-    srv_grp.add_argument(
-        "--server", default=os.getenv("MAGNETDB_API_SERVER", "magnetdb.lncmi.local")
-    )
-    srv_grp.add_argument("--port", type=int, default=None)
-    srv_grp.add_argument("--https", action="store_true")
+    add_server_arguments(p)
 
     # ── cooling overrides ──
     cool_grp = p.add_argument_group("cooling overrides (API fallback defaults)")
@@ -650,7 +646,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override thermal conductivity λ [W/m/°C] for all helices",
     )
 
-    p.add_argument("--debug", action="store_true")
     p.add_argument("--verbose", action="store_true")
     return p
 
@@ -709,7 +704,7 @@ def main() -> None:
             if args.port is None
             else f"{protocol}://{args.server}:{args.port}"
         )
-        verify = "/etc/ssl/certs" if args.https else True
+        verify = not args.no_verify
 
         print(f"[API] Fetching geometry for magnet '{args.magnet}' from {api_server}")
         with requests.Session() as session:

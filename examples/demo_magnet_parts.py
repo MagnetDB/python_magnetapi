@@ -37,15 +37,18 @@ from python_magnetapi.cli.parser import add_server_arguments
 
 class PartType(str, enum.Enum):
     """Part types as defined in MagnetDB."""
-    HELIX  = "helix"
+
+    HELIX = "helix"
     BITTER = "bitter"
-    SUPRA  = "supra"
-    RING   = "ring"
+    SUPRA = "supra"
+    RING = "ring"
     SCREEN = "screen"
-    LEAD   = "lead"
+    LEAD = "lead"
 
 
-def get_magnet_id(session, web: str, headers: dict, magnet_name: str, debug: bool) -> int:
+def get_magnet_id(
+    session, web: str, headers: dict, magnet_name: str, debug: bool
+) -> int:
     """Resolve a magnet name to its numeric id."""
     ids = utils.get_list(session, web, headers=headers, mtype="magnet")
     if magnet_name not in ids:
@@ -72,9 +75,7 @@ def main():
     args = parser.parse_args()
 
     web = (
-        f"https://{args.server}"
-        if args.https
-        else f"http://{args.server}:{args.port}"
+        f"https://{args.server}" if args.https else f"http://{args.server}:{args.port}"
     )
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY", "")}
 
@@ -88,7 +89,9 @@ def main():
         # health-check
         r = session.get(f"{web}/api/magnets", headers=headers)
         if r.status_code != 200:
-            console.print(f"[red]ERROR:[/red] cannot reach {web} (status {r.status_code})")
+            console.print(
+                f"[red]ERROR:[/red] cannot reach {web} (status {r.status_code})"
+            )
             sys.exit(1)
 
         # resolve magnet name → id
@@ -101,9 +104,7 @@ def main():
         console.print()
 
         # fetch parts via GET /api/magnets/{id}/parts
-        parts = utils.get_parts_for_magnet(
-            session, web, headers, magnet_id
-        )
+        parts = utils.get_parts_for_magnet(session, web, headers, magnet_id)
 
         if args.type is not None:
             parts = [p for p in parts if p.get("type") == args.type.value]
@@ -112,24 +113,39 @@ def main():
             console.print("[yellow]No parts found for this magnet.[/yellow]")
             return
 
+        """
+        # an alternative way of doing things?
+        history = utils.get_history(
+            session, web, headers, magnet_id, mtype="magnet", otype="part"
+        )
+        for row in history:
+            print(f"raw magnet join-row: {row}")
+        print(f"history: {[row.get('part').get('id') for row in history]}")
+        """
+
         title = f"Parts of magnet '{args.magnet}'"
         if args.type is not None:
             title += f" (type={args.type.value})"
         table = Table(title=title)
-        table.add_column("Part name",    style="cyan",  no_wrap=True)
-        table.add_column("Type",         style="white")
-        table.add_column("Status",       style="white")
-        table.add_column("Material",     style="green")
+        table.add_column("Part name", style="cyan", no_wrap=True)
+        table.add_column("Type", style="white")
+        table.add_column("Status", style="white")
+        table.add_column("Material", style="green")
 
         for part in parts:
             # material_id is a direct FK column returned by model_serializer
             material_id = utils.get_fk_id(part, "material")
             if material_id is not None:
                 mat = utils.get_object(
-                    session, web, headers=headers, mtype="material",
+                    session,
+                    web,
+                    headers=headers,
+                    mtype="material",
                     id=material_id,
                 )
-                material_name = mat.get("name", str(material_id)) if mat else str(material_id)
+                material_name = (
+                    mat.get("name", str(material_id)) if mat else str(material_id)
+                )
             else:
                 material_name = "—"
 

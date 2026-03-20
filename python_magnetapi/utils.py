@@ -253,6 +253,69 @@ def get_parts_for_magnet(
     return parts
 
 
+def get_magnets_for_site(
+    session: requests.Session,
+    api_server: str,
+    headers: dict,
+    site_id: int,
+) -> list[dict]:
+    """
+    Return the full Magnet objects associated with a site.
+
+    Calls GET /api/sites/{site_id}/magnets (must exist in magnetdb).
+    The endpoint returns a dict with a `site_magnets` key, each entry
+    containing a `magnet_id` field and a nested `magnet` object.
+
+    Each magnet is fetched individually via get_object to obtain the full
+    representation.
+    Returns a list of Magnet dicts (same structure as get_object(mtype="magnet")).
+    """
+    logger.info(f"get_magnets_for_site: api_server={api_server}, site_id={site_id}")
+
+    r = session.get(f"{api_server}/api/sites/{site_id}/magnets", headers=headers)
+    if r.status_code != 200:
+        logger.error(f"get_magnets_for_site: {r.status_code} for site {site_id}")
+        return []
+
+    rows = r.json()
+    logger.debug(f"get_magnets_for_site: rows={rows}")
+
+    if not rows:
+        return []
+
+    site_magnets = rows.get("site_magnets", [])
+    logger.info(
+        f"get_magnets_for_site: {len(site_magnets)} magnets found for site {site_id}"
+    )
+    logger.debug(
+        f"get_magnets_for_site: {[sm.get('magnet', {}).get('id') for sm in site_magnets]} magnets found for site {site_id}"
+    )
+
+    magnets = []
+    seen = set()
+    for i, site_magnet in enumerate(site_magnets):
+        magnet_id = site_magnet.get("magnet", {}).get("id") or site_magnet.get("magnet_id")
+        if magnet_id is None or magnet_id in seen:
+            continue
+        try:
+            logger.debug(f"get_magnets_for_site: magnet[{i}] = id={magnet_id}")
+            seen.add(magnet_id)
+            magnet = get_object(
+                session,
+                api_server,
+                headers,
+                magnet_id,
+                mtype="magnet",
+            )
+            logger.debug(f"name={magnet.get('name') if magnet else None}")
+            if magnet:
+                magnets.append(magnet)
+        except Exception as e:
+            logger.error(f"Error fetching magnet with id {magnet_id}: {e}")
+
+    return magnets
+
+
 def create_object(
     session: requests.Session,
     api_server: str,

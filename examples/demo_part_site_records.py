@@ -32,6 +32,7 @@ from datetime import datetime
 import requests
 
 from python_magnetapi import utils
+from python_magnetapi.cli.parser import add_server_arguments
 
 
 # ---------------------------------------------------------------------------
@@ -166,19 +167,12 @@ def print_site_card(site: dict, records: list[dict], magnet_names: list[str]) ->
 # ---------------------------------------------------------------------------
 
 def main():
-    api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
-
     parser = argparse.ArgumentParser(
         description="Show part history with full site data and associated records"
     )
     parser.add_argument("--part",   required=True, help="Part name to inspect")
-    parser.add_argument("--server", default=api_server)
-    parser.add_argument("--port",   type=int, default=8000)
-    parser.add_argument("--https",     action="store_true")
-    parser.add_argument("--no-verify", action="store_true",
-                        help="Skip TLS certificate verification (self-signed certs)")
     parser.add_argument("--json",   action="store_true", help="Dump raw site JSON at end")
-    parser.add_argument("--debug",  action="store_true")
+    add_server_arguments(parser)
     args = parser.parse_args()
 
     web = (

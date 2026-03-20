@@ -30,6 +30,7 @@ from datetime import datetime
 import requests
 
 from python_magnetapi import utils
+from python_magnetapi.cli.parser import add_server_arguments
 
 
 # ---------------------------------------------------------------------------
@@ -44,11 +45,11 @@ def _parse_date(obj: dict) -> datetime:
     for field in _DATE_FIELDS:
         raw = obj.get(field)
         if raw:
-            for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
-                try:
-                    return datetime.strptime(raw, fmt)
-                except ValueError:
-                    continue
+            try:
+                dt = datetime.fromisoformat(raw)
+                return dt.replace(tzinfo=None)
+            except ValueError:
+                continue
     return datetime.min
 
 
@@ -62,6 +63,7 @@ def _fmt(obj: dict) -> str:
 # ---------------------------------------------------------------------------
 # Core logic
 # ---------------------------------------------------------------------------
+
 
 def get_part_id(session, web: str, headers: dict, part_name: str, debug: bool) -> int:
     """Resolve a part name to its numeric id."""
@@ -95,18 +97,18 @@ def get_magnets_for_part(
 
     join_rows = r.json()
     if debug:
-        print(f"[debug] magnet join-rows: {json.dumps(join_rows, indent=2, default=str)}")
+        print(
+            f"[debug] magnet join-rows: {json.dumps(join_rows, indent=2, default=str)}"
+        )
 
     magnets = []
     seen = set()
-    for row in join_rows:
-        mid = row.get("magnet_id")
+    for row in join_rows["magnets"]:
+        mid = row.get("id")
         if mid is None or mid in seen:
             continue
         seen.add(mid)
-        magnet = utils.get_object(
-            session, web, headers=headers, mtype="magnet", id=mid
-        )
+        magnet = utils.get_object(session, web, headers=headers, mtype="magnet", id=mid)
         if magnet:
             magnets.append(magnet)
 
@@ -126,17 +128,18 @@ def get_sites_for_magnet(
     if not join_rows:
         return []
 
+    if debug:
+        print(f"[debug] site join-rows: {json.dumps(join_rows, indent=2, default=str)}")
+
     sites = []
     seen = set()
     for row in join_rows:
         # get_history returns raw rows; the site id may live under 'id' or 'site_id'
-        sid = row.get("id") or row.get("site_id")
+        sid = row.get("site").get("id")  # or row.get("site_id")
         if sid is None or sid in seen:
             continue
         seen.add(sid)
-        site = utils.get_object(
-            session, web, headers=headers, mtype="site", id=sid
-        )
+        site = utils.get_object(session, web, headers=headers, mtype="site", id=sid)
         if site:
             sites.append(site)
 
@@ -148,28 +151,21 @@ def get_sites_for_magnet(
 # Main
 # ---------------------------------------------------------------------------
 
-def main():
-    api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
 
+def main():
     parser = argparse.ArgumentParser(description="Show part history (magnets & sites)")
-    parser.add_argument("--part",   required=True, help="Part name to inspect")
-    parser.add_argument("--server", default=api_server, help="API server hostname")
-    parser.add_argument("--port",   type=int, default=8000, help="Port (HTTP only)")
-    parser.add_argument("--https",     action="store_true", help="Use HTTPS")
-    parser.add_argument("--no-verify", action="store_true",
-                        help="Skip TLS certificate verification (self-signed certs)")
-    parser.add_argument("--debug",  action="store_true", help="Verbose API output")
+    parser.add_argument("--part", required=True, help="Part name to inspect")
+    add_server_arguments(parser)
     args = parser.parse_args()
 
     web = (
-        f"https://{args.server}"
-        if args.https
-        else f"http://{args.server}:{args.port}"
+        f"https://{args.server}" if args.https else f"http://{args.server}:{args.port}"
     )
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY", "")}
 
     if args.no_verify:
         import urllib3
+
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     with requests.Session() as session:
@@ -187,9 +183,7 @@ def main():
 
         # 1. Resolve part
         part_id = get_part_id(session, web, headers, args.part, args.debug)
-        part = utils.get_object(
-            session, web, headers=headers, mtype="part", id=part_id
-        )
+        part = utils.get_object(session, web, headers=headers, mtype="part", id=part_id)
         print(f"Part details")
         print(f"  name   : {part.get('name')}")
         print(f"  type   : {part.get('type')}")
@@ -218,7 +212,9 @@ def main():
 
         sorted_sites = sorted(all_sites.values(), key=_parse_date)
 
-        print(f"Sites that used this part (via its magnets)  ({len(sorted_sites)} found, sorted by date)")
+        print(
+            f"Sites that used this part (via its magnets)  ({len(sorted_sites)} found, sorted by date)"
+        )
         print("-" * 60)
         if sorted_sites:
             for s in sorted_sites:
