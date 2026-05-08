@@ -6,14 +6,19 @@ Compute helix conductor temperature rise for a resistive magnet by fetching
 geometry and material data from MagnetDB, then applying the same physical
 model as calcul_DT_helices_HL31.py.
 
-Two geometry backends are supported (selected automatically):
+Three data source backends are supported (selected automatically):
 
   1. **magnettools** (preferred) — when ``--dfile PATH`` points to a pre-generated
      ``.d`` input file.  ``mt.read_dfile`` populates ``VectorOfTubes`` and
      ``VectorOfBitters``; all geometry (r_int, r_ext) and physical parameters
      (Σ → ρ, k_thermal, T_water, h_conv) are read directly from those objects.
 
-  2. **API + YAML** (fallback) — geometry is obtained by downloading the
+  2. **JSON file** — when ``--magnet-json PATH`` is provided, the magnet definition
+     is read from a fully-expanded JSON file (no API requests). The JSON must contain
+     all part data with embedded geometry (Dint, Dext, h_spire) and material properties
+     (ρ, λ, rapport) for each helix. No session or network access is required.
+
+  3. **API + YAML** (fallback) — geometry is obtained by downloading the
      per-helix YAML attachments from MagnetDB and parsing them with PyYAML;
      material properties (ρ, λ) come from the ``material`` sub-object of each
      part API response.
@@ -39,6 +44,9 @@ Usage
   # With a pre-generated magnettools .d file (preferred path):
   python calcul_DT_helices_from_api.py M9 --current 31000 --dfile M9.d
 
+  # With a JSON file containing magnet definition:
+  python calcul_DT_helices_from_api.py M9 --current 31000 --magnet-json M9.json
+
   # Override cooling defaults:
   python calcul_DT_helices_from_api.py M9 --current 31000 --h_conv 85000 --Teau 30
 
@@ -54,6 +62,7 @@ Authentication
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import sys
@@ -66,7 +75,7 @@ import pandas as pd
 import requests
 import yaml
 
-from python_magnetapi import utils, cache
+from python_magnetapi import utils
 
 # ── Optional magnettools import ──────────────────────────────────────────────
 try:
@@ -343,6 +352,104 @@ def _extract_material_params(material: dict, debug: bool) -> dict:
     return {"rho": rho, "lam": lam, "rapport": rapport}
 
 
+def _build_helix_inputs_from_json(
+    magnet_data: dict,
+    I: float,
+    h_conv_override: Optional[float],
+    Teau_override: Optional[float],
+    rho_override: Optional[float],
+    lam_override: Optional[float],
+    debug: bool,
+) -> list[HelixInput]:
+    """
+    Build helix inputs from a fully-expanded JSON magnet definition.
+    
+    Expected JSON structure:
+      {
+        "magnet_parts": [
+          {
+            "part": {
+              "type": "helix",
+              "name": "...",
+              "geometry": {"Dint": ..., "Dext": ..., "h_spire": ...},
+              "material": {"rho": ..., "lam": ..., "rapport": ...}
+            }
+          },
+          ...
+        ]
+      }
+    
+    No API calls are made; all data must be embedded in the JSON file.
+    """
+    if debug:
+        print(f"[JSON] Processing magnet data, "
+              f"parts={len(magnet_data.get('magnet_parts', []))}")
+
+    inputs: list[HelixInput] = []
+    helix_counter = 0
+
+    for part_stub in magnet_data.get("magnet_parts", []):
+        part = part_stub.get("part", {})
+        ptype = part.get("type", "")
+        
+        if ptype != "helix":
+            continue
+
+        helix_counter += 1
+        label = f"H{helix_counter}"
+        pname = part.get("name", f"part_{helix_counter}")
+
+        # ── geometry ───────────────────────────────────────────────────
+        geom = part.get("geometry", {})
+        if not geom:
+            warnings.warn(f"{label} ({pname}): no geometry data in JSON — skipped.")
+            continue
+
+        Dint = geom.get("Dint")
+        Dext = geom.get("Dext")
+        h_spire = geom.get("h_spire")
+
+        if Dint is None or Dext is None or h_spire is None:
+            warnings.warn(
+                f"{label} ({pname}): incomplete geometry (Dint={Dint}, "
+                f"Dext={Dext}, h_spire={h_spire}) — skipped."
+            )
+            continue
+
+        # ── material ───────────────────────────────────────────────────
+        mat = part.get("material", {})
+        mat_params = _extract_material_params(mat, debug=debug)
+
+        rho   = rho_override if rho_override is not None else mat_params["rho"]
+        lam   = lam_override if lam_override is not None else mat_params["lam"]
+        h_conv = h_conv_override if h_conv_override is not None else DEFAULT_H_CONV
+        Teau   = Teau_override   if Teau_override   is not None else DEFAULT_TEAU
+
+        if rho is None:
+            warnings.warn(
+                f"{label} ({pname}): ρ not found in JSON material; "
+                "provide --rho or add 'rho' field to JSON."
+            )
+            continue
+        if lam is None:
+            warnings.warn(
+                f"{label} ({pname}): λ not found in JSON material; "
+                "provide --lam or add 'lam' field to JSON."
+            )
+            continue
+
+        inputs.append(HelixInput(
+            name=label,
+            rho=rho, I=I, h_conv=h_conv,
+            Dint=Dint, Dext=Dext,
+            lam=lam, Teau=Teau,
+            h_spire=h_spire,
+            rapport=mat_params.get("rapport"),
+        ))
+
+    return inputs
+
+
 def _build_helix_inputs_from_api(
     session,
     api_server: str,
@@ -356,7 +463,7 @@ def _build_helix_inputs_from_api(
     debug: bool,
 ) -> list[HelixInput]:
     """
-    Fetch magnet → helix parts → geometry YAMLs + material data from MagnetDB.
+    Fetch magnet → helix parts → geometry YAMLs + material data from MagnetDB API.
     Returns a list of ``HelixInput`` ready for ``compute_helix()``.
     """
     # ── locate the magnet ──────────────────────────────────────────────────
@@ -368,7 +475,7 @@ def _build_helix_inputs_from_api(
             f"Magnet '{magnet_name}' not found in MagnetDB. "
             f"Available: {sorted(all_magnets.keys())}"
         )
-    magnet = cache.get_object(
+    magnet = utils.get_object(
         session, api_server, auth_headers, "magnet", all_magnets[magnet_name],
         debug=debug,
     )
@@ -386,8 +493,8 @@ def _build_helix_inputs_from_api(
                 continue
 
             pid   = part_stub["part_id"]
-            pobj  = cache.get_object(
-                session, api_server, auth_headers, "part", pid, debug=debug
+            pobj  = utils.get_object(
+                session, api_server, auth_headers, pid, "part", debug=debug
             )
             pname = pobj.get("name", f"part_{pid}")
             helix_counter += 1
@@ -459,13 +566,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--current", "-I", type=float, required=True,
                    help="Operating current [A]")
 
-    # ── magnettools backend ──
-    mt_grp = p.add_argument_group("magnettools backend (preferred)")
-    mt_grp.add_argument(
+    # ── data source backends ──
+    src_grp = p.add_argument_group("data source backends")
+    src_grp.add_argument(
         "--dfile", metavar="PATH",
         help="Path to a pre-generated magnettools .d input file. "
              "When supplied, geometry and material params are read from "
              "Tube/BitterMagnet objects (magnettools bindings) instead of the API."
+    )
+    src_grp.add_argument(
+        "--magnet-json", metavar="PATH",
+        help="Path to a JSON file containing magnet definition. "
+             "When supplied, magnet data is read from this file instead of fetching from API."
     )
 
     # ── server ──
@@ -499,11 +611,12 @@ def main() -> None:
     args   = parser.parse_args()
 
     # ── auth ──────────────────────────────────────────────────────────────
+    # Only required when fetching from API (not for dfile or magnet-json)
     api_key = os.getenv("MAGNETDB_API_KEY")
-    if not api_key:
+    if not args.dfile and not args.magnet_json and not api_key:
         sys.exit("Error: MAGNETDB_API_KEY environment variable not set.")
 
-    auth_headers = {"Authorization": api_key}
+    auth_headers = {"Authorization": api_key} if api_key else {}
 
     protocol = "https" if args.https else "http"
     api_server = (
@@ -514,24 +627,40 @@ def main() -> None:
     verify = "/etc/ssl/certs" if args.https else True
 
     # ── build HelixInput list ─────────────────────────────────────────────
-    with requests.Session() as session:
-        session.verify = verify
-
-        if args.dfile:
-            # ─ magnettools .d-file backend ─────────────────────────────
-            if not HAS_MT:
-                sys.exit("Error: magnettools is required for --dfile but could not be imported.")
-            if not os.path.isfile(args.dfile):
-                sys.exit(f"Error: .d file not found: {args.dfile}")
-            print(f"[magnettools] Reading geometry from {args.dfile}")
-            helix_inputs = _load_from_dfile(
-                args.dfile, args.current,
-                h_conv_override=args.h_conv,
-                Teau_override=args.Teau,
-                debug=args.debug,
-            )
-        else:
-            # ─ API + YAML backend ──────────────────────────────────────
+    if args.dfile:
+        # ─ magnettools .d-file backend ─────────────────────────────
+        if not HAS_MT:
+            sys.exit("Error: magnettools is required for --dfile but could not be imported.")
+        if not os.path.isfile(args.dfile):
+            sys.exit(f"Error: .d file not found: {args.dfile}")
+        print(f"[magnettools] Reading geometry from {args.dfile}")
+        helix_inputs = _load_from_dfile(
+            args.dfile, args.current,
+            h_conv_override=args.h_conv,
+            Teau_override=args.Teau,
+            debug=args.debug,
+        )
+    elif args.magnet_json:
+        # ─ JSON file backend ───────────────────────────────────────────
+        if not os.path.isfile(args.magnet_json):
+            sys.exit(f"Error: JSON file not found: {args.magnet_json}")
+        print(f"[JSON] Reading magnet definition from {args.magnet_json}")
+        with open(args.magnet_json, 'r') as f:
+            magnet_data = json.load(f)
+        helix_inputs = _build_helix_inputs_from_json(
+            magnet_data,
+            I=args.current,
+            h_conv_override=args.h_conv,
+            Teau_override=args.Teau,
+            rho_override=args.rho,
+            lam_override=args.lam,
+            debug=args.debug,
+        )
+    else:
+        # ─ API + YAML backend ──────────────────────────────────────────
+        with requests.Session() as session:
+            session.verify = verify
+            
             print(f"[API] Fetching geometry for magnet '{args.magnet}' from {api_server}")
             helix_inputs = _build_helix_inputs_from_api(
                 session, api_server, auth_headers,

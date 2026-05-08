@@ -190,7 +190,105 @@ Sites that used this part (via its magnets)  (2, sorted by date)
 
 ---
 
-## Relationship between the two demos
+## Demo 3 — `calcul_DT_helices_from_api.py`
+
+### What it does
+
+Computes the **conductor temperature rise** for every helix of a resistive
+magnet using the same physical model as `calcul_DT_helices_HL31.py`.
+Geometry and material data are obtained through one of three selectable
+backends (chosen automatically based on which flags are supplied):
+
+| Backend | Trigger flag | What is read |
+|---|---|---|
+| **magnettools** (preferred) | `--dfile PATH` | Pre-generated `.d` input file via pybind11 bindings |
+| **JSON file** | `--magnet-json PATH` | Fully-expanded JSON with embedded geometry + material |
+| **API + YAML** (fallback) | *(neither flag)* | Per-helix geometry YAMLs downloaded from MagnetDB; material from API |
+
+### Physical model
+
+For each helix (inner radius $R_\text{int}$, outer radius $R_\text{ext}$,
+pitch $h_\text{spire}$, current $I$):
+
+$$e = \frac{D_\text{ext} - D_\text{int}}{2}, \quad
+j = \frac{I}{e \cdot h_\text{spire}}$$
+
+$$P_\text{vol} = \rho \, j^2, \quad
+\text{flux} = P_\text{vol} \cdot \frac{D_\text{ext} - D_\text{int}}{4}$$
+
+$$\Delta T_\text{paroi} = \frac{\text{flux}}{h_\text{conv}}, \quad
+\Delta T_\text{plane} = \frac{P_\text{vol}\,e^2}{8\,\lambda}$$
+
+$$T_\text{max} = T_\text{eau} + \Delta T_\text{paroi} + \Delta T_\text{plane}$$
+
+A Matthiessen consistency check derives `T_moy_ro` and `Rapport IACS` from ρ.
+
+### API calls made (API + YAML backend only)
+
+```
+GET /api/magnets           → resolve name → id
+GET /api/magnets/{id}      → part list
+GET /api/parts/{id}        → part metadata + geometry attachments
+GET /api/attachments/{id}  → download geometry YAML
+```
+
+### Usage
+
+```bash
+# API + YAML fallback (requires MAGNETDB_API_KEY):
+python calcul_DT_helices_from_api.py M9 --current 31000
+
+# With a pre-generated magnettools .d file (preferred):
+python calcul_DT_helices_from_api.py M9 --current 31000 --dfile M9.d
+
+# With a JSON file containing magnet definition:
+python calcul_DT_helices_from_api.py M9 --current 31000 --magnet-json M9.json
+
+# Override cooling defaults:
+python calcul_DT_helices_from_api.py M9 --current 31000 --h_conv 85000 --Teau 30
+
+# Full server specification with HTTPS:
+python calcul_DT_helices_from_api.py M9 --current 31000 \
+    --server magnetdb.lncmi.local --https
+```
+
+### All flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `magnet` | *(required)* | Magnet name (e.g. `M9`, `HL31`) |
+| `--current / -I` | *(required)* | Operating current [A] |
+| `--dfile PATH` | — | Path to magnettools `.d` input file |
+| `--magnet-json PATH` | — | Path to JSON file with magnet definition |
+| `--server` | `$MAGNETDB_API_SERVER` | API hostname (no scheme) |
+| `--port` | — | Port number |
+| `--https` | off | Use HTTPS instead of HTTP |
+| `--h_conv` | `85000` | Heat-transfer coefficient [W/m²/°C] |
+| `--Teau` | `30` | Cooling water temperature [°C] |
+| `--rho` | — | Override resistivity ρ [Ω·m] for all helices |
+| `--lam` | — | Override thermal conductivity λ [W/m/°C] for all helices |
+| `--verbose` | off | Print full transposed DataFrame (all columns) |
+| `--debug` | off | Print raw API responses and intermediate values |
+
+### Sample output
+
+```
+====================================================================================================
+Calcul températures hélices — M9  (I = 31000 A)
+====================================================================================================
+    DT_paroi [°C]  DT_plane [°C]  DT_cyl [°C]  Tmax [°C]  Tmoy [°C]  T_moy_ro [°C]  Rapport IACS
+H1          12.34          18.72        19.05      61.06      42.83          48.21        0.9231
+H2          11.87          17.45        17.74      59.32      41.45          46.98        0.9312
+H3          10.92          15.63        15.87      56.55      39.67          45.11        0.9418
+...
+
+Tmax range: 54.3 … 65.1 °C
+Tmoy range: 38.7 … 44.2 °C
+```
+
+---
+
+## Relationship between the demos
 
 ```
 demo_part_history.py          demo_part_site_records.py
@@ -204,7 +302,18 @@ sites (sorted)         ──▶    sites (sorted) + full card per site
                        (opt)   raw JSON dump  (--json)
 ```
 
+```
+calcul_DT_helices_from_api.py
+──────────────────────────────────────────────────────────────────────
+magnet name + current  ──▶  helix geometry (dfile / JSON / API+YAML)
+                       ──▶  material (ρ, λ)  from same source
+                       ──▶  ΔT_paroi, ΔT_plane, Tmax, Tmoy per helix
+```
+
 Demo 1 is useful for a quick chronological overview.
 Demo 2 is the starting point for further analysis such as hoop-stress
 history computation (`hoop_stress.py`), which consumes the record list
 exposed by each site card.
+Demo 3 is a standalone thermal check tool: given a magnet name and
+operating current it reports per-helix temperature rises and Matthiessen
+consistency, using whichever data source is available.
