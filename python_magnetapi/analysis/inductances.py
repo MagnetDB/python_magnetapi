@@ -32,8 +32,6 @@ def compute(
     headers: dict,
     oid: int,
     mtype: str = "magnet",
-    verbose: bool = False,
-    debug: bool = False,
 ):
     """
     compute inductances for a given magnet or site
@@ -46,14 +44,12 @@ def compute(
             headers=headers,
             mtype="site",
             id=oid,
-            verbose=verbose,
-            debug=debug,
         )
         # print(f"site[{i}]: {sites[i]['name']}")
 
         # add route to get data in visualisation
         config_data = utils.get_data(
-            session, api_server, headers, oid=site["id"], mtype="site", debug=debug
+            session, api_server, headers, oid=site["id"], mtype="site"
         )
 
         # create datastruct for Hoop calc
@@ -83,8 +79,6 @@ def compute(
             headers=headers,
             mtype="magnet",
             id=oid,
-            verbose=verbose,
-            debug=debug,
         )
 
         data = magnet_setup(env, config_data["results"], debug)

@@ -2,6 +2,8 @@
 create magnet
 """
 
+import requests
+
 from . import utils
 from .exceptions import ResourceConflictError
 
@@ -10,19 +12,37 @@ from .exceptions import ResourceConflictError
 
 
 def create(
-    session,
+    session: requests.Session,
     api_server: str,
     headers: dict,
     data: dict,
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    create a magnet from a data dictionnary
+) -> int | None:
+    """Create a magnet from a data dictionary.
+
+    Parts and sites listed in *data* are linked after the magnet is created.
+    Geometry files, if provided, are uploaded to the geometry endpoint.
+
+    Args:
+        session: requests session
+        api_server: API server base URL
+        headers: HTTP request headers
+        data: magnet fields (must include "name"); may contain "parts", "sites",
+              and "geometry" lists which are processed separately
+        verbose: enable verbose output
+        debug: enable debug output
+
+    Returns:
+        ID of the newly created magnet, or None if creation failed.
+
+    Raises:
+        ResourceConflictError: if a magnet with the same name already exists.
+        RuntimeError: if a part or site entry has an unexpected type.
     """
 
     ids = utils.get_list(
-        session, api_server, headers=headers, mtype="magnet", debug=debug
+        session, api_server, headers=headers, mtype="magnet"
     )
     if data["name"] in ids:
         raise ResourceConflictError(
@@ -55,7 +75,7 @@ def create(
     # data: extract only necessary data for creation
     print(f"create:magnet data={data}")
     response = utils.post_data(
-        session, api_server, headers, data, "magnet", verbose, debug
+        session, api_server, headers, data, "magnet"
     )
     print(f"create:magnet response={response}")
     if response is None:
@@ -68,7 +88,7 @@ def create(
     magnet_id = response["id"]
     for part in parts:
         _ids = utils.get_list(
-            session, api_server, headers=headers, mtype="part", debug=debug
+            session, api_server, headers=headers, mtype="part"
         )
         if isinstance(part, str):
             # TODO if part is a string use procedure bellow,
@@ -88,8 +108,6 @@ def create(
                     data=pdata,
                     mtype="magnet",
                     dtype="part",
-                    verbose=verbose,
-                    debug=debug,
                 )
             else:
                 print(
@@ -103,7 +121,7 @@ def create(
                 _id = pdata = {"part_id": _ids[part]}
             else:
                 _id = part.create(
-                    api_server, headers, part, verbose=verbose, debug=debug
+                    api_server, headers, part
                 )
 
             print(
@@ -117,8 +135,6 @@ def create(
                 data={"part_id": _id},
                 mtype="magnet",
                 dtype="part",
-                verbose=verbose,
-                debug=debug,
             )
         else:
             raise RuntimeError(
@@ -127,7 +143,7 @@ def create(
 
     for site in sites:
         _ids = utils.get_list(
-            session, api_server, headers=headers, mtype="site", debug=debug
+            session, api_server, headers=headers, mtype="site"
         )
         if isinstance(site, str):
             if site in _ids:
@@ -144,8 +160,6 @@ def create(
                     data={"magnet_id": magnet_id},
                     mtype="site",
                     dtype="magnet",
-                    verbose=verbose,
-                    debug=debug,
                 )
 
             else:
@@ -170,8 +184,6 @@ def create(
             "geometrie",
             data={"type": "default"},
             files={"geometry": geomfile},
-            verbose=verbose,
-            debug=debug,
         )
 
     # add cad

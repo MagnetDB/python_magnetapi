@@ -1,8 +1,45 @@
 python-magnetapi (0.1.1-1) UNRELEASED; urgency=medium
 
   * rebuild for trixie
+  * Refactor CLI module into modular package structure:
+    - Replace monolithic cli.py (684 lines) with cli/ package
+    - Add cli/context.py: CLIContext dataclass managing HTTP session and config
+    - Add cli/base.py: BaseCommand ABC with shared helpers and OBJECT_TYPES
+      constant
+    - Add cli/parser.py: argument parser factory
+    - Add cli/commands/: individual handlers for list, view, create, delete,
+      setup, run, compute and process subcommands
+    - No breaking changes: CLI interface remains identical
+  * Add type hints and docstrings throughout cli/ package:
+    - All public methods now have full type annotations and docstrings
+    - configure_parser() methods document their parser argument
+    - CLIContext.__enter__/__exit__ have proper return type annotations
+  * Fix logic bug in setup command available_models validation
+  * Eliminate redundant API calls in view and compute commands
+  * Update pyproject.toml to declare cli/ sub-packages
+  * Modernize Debian packaging:
+    - Update Standards-Version to 4.7.0
+    - Add full runtime dependencies to Build-Depends and Depends
+    - Uncomment Vcs-Browser and Vcs-Git fields
+    - Remove duplicate python3-rich entry from Build-Depends
+    - Update package descriptions
+  * Handle ForeignKey fields returned as nested dicts by API:
+    - Add utils.get_fk_id() to extract FK id from nested dict, int, or None
+    - Update part.create() to use id directly when material field is a dict
+  * Add get_parts_for_magnet() helper in utils.py for nested magnet/parts
+    endpoint; add demo_magnet_parts.py example script
+  * Fix --no-verify SSL flag: suppress InsecureRequestWarning only when
+    explicitly requested; add --no-verify to all demo scripts and CLIContext
+  * Fix get_parts_for_magnet to correctly resolve part objects from magnet
+  * Add type hints and docstrings to domain modules:
+    - utils.py: requests.Session type on all session params; return types on
+      all functions (dict|None, list|None, str|None, etc.); full Args/Returns/
+      Raises docstrings
+    - material.py, part.py, magnet.py, record.py, site.py, attachment.py:
+      requests.Session type on session param; return type annotations;
+      expanded docstrings with Args, Returns, and Raises sections
 
- -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Tue, 17 Mar 2026 09:03:13 +0100
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 20 Mar 2026 14:00:00 +0100
 
 python-magnetapi (0.1.0-1) unstable; urgency=medium
 

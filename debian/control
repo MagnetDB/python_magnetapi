@@ -3,9 +3,8 @@ Section: python
 Priority: optional
 Maintainer: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 Build-Depends: debhelper-compat (= 13),
- dh-python,
- python3-all,
  pybuild-plugin-pyproject,
+ python3-all,
  python3-requests,
  python3-pandas,
  python3-numpy,
@@ -15,10 +14,10 @@ Build-Depends: debhelper-compat (= 13),
  python3-magnetsetup,
  python3-magnetcooling,
  python3-magnettools
-Standards-Version: 4.6.2
+Standards-Version: 4.7.0
 Homepage: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
-#Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
+Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
+Vcs-Git: https://github.com/MagnetDB/python_magnetapi.git
 #Testsuite: autopkgtest-pkg-python
 Rules-Requires-Root: no
 
@@ -53,7 +52,7 @@ Section: doc
 Depends: ${sphinxdoc:Depends}, ${misc:Depends}
 Description: Python library and CLI for MagnetDB (documentation)
  Python MagnetAPI provides utilities to interact with MagnetDB, a database
- for magnetic materials, parts, magnets, and sites.
+ for materials, parts, magnets, and sites.
  .
  This package provides the common documentation including Sphinx-generated
  HTML documentation, API reference, and usage guides.

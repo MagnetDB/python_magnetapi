@@ -32,6 +32,7 @@ from datetime import datetime
 import requests
 
 from python_magnetapi import utils
+from python_magnetapi.cli.parser import add_server_arguments
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ def _date_str(obj: dict, field: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 
 def get_part_id(session, web, headers, part_name, debug) -> int:
-    ids = utils.get_list(session, web, headers=headers, mtype="part", debug=debug)
+    ids = utils.get_list(session, web, headers=headers, mtype="part")
     if part_name not in ids:
         print(
             f"ERROR: part '{part_name}' not found.\n"
@@ -89,7 +90,7 @@ def get_magnets_for_part(session, web, headers, part_id, debug) -> list[dict]:
         if mid and mid not in seen:
             seen.add(mid)
             obj = utils.get_object(
-                session, web, headers=headers, mtype="magnet", id=mid, debug=debug
+                session, web, headers=headers, mtype="magnet", id=mid
             )
             if obj:
                 magnets.append(obj)
@@ -99,7 +100,7 @@ def get_magnets_for_part(session, web, headers, part_id, debug) -> list[dict]:
 
 def get_sites_for_magnet(session, web, headers, magnet_id, debug) -> list[dict]:
     join_rows = utils.get_history(
-        session, web, headers, magnet_id, mtype="magnet", otype="site", debug=debug
+        session, web, headers, magnet_id, mtype="magnet", otype="site"
     )
     if not join_rows:
         return []
@@ -110,7 +111,7 @@ def get_sites_for_magnet(session, web, headers, magnet_id, debug) -> list[dict]:
         if sid and sid not in seen:
             seen.add(sid)
             obj = utils.get_object(
-                session, web, headers=headers, mtype="site", id=sid, debug=debug
+                session, web, headers=headers, mtype="site", id=sid
             )
             if obj:
                 sites.append(obj)
@@ -126,7 +127,7 @@ def get_records_for_site(session, web, headers, site_id, debug) -> list[dict]:
     Each record has at minimum: id, name, created_at, attachment_id.
     """
     records = utils.get_history(
-        session, web, headers, site_id, mtype="site", otype="record", debug=debug
+        session, web, headers, site_id, mtype="site", otype="record"
     )
     if not records:
         return []
@@ -166,17 +167,12 @@ def print_site_card(site: dict, records: list[dict], magnet_names: list[str]) ->
 # ---------------------------------------------------------------------------
 
 def main():
-    api_server = os.getenv("MAGNETDB_API_SERVER") or "api.magnetdb-dev.local"
-
     parser = argparse.ArgumentParser(
         description="Show part history with full site data and associated records"
     )
     parser.add_argument("--part",   required=True, help="Part name to inspect")
-    parser.add_argument("--server", default=api_server)
-    parser.add_argument("--port",   type=int, default=8000)
-    parser.add_argument("--https",  action="store_true")
     parser.add_argument("--json",   action="store_true", help="Dump raw site JSON at end")
-    parser.add_argument("--debug",  action="store_true")
+    add_server_arguments(parser)
     args = parser.parse_args()
 
     web = (
@@ -186,7 +182,12 @@ def main():
     )
     headers = {"Authorization": os.getenv("MAGNETDB_API_KEY", "")}
 
+    if args.no_verify:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     with requests.Session() as session:
+        session.verify = not args.no_verify
         # health-check
         r = session.get(f"{web}/api/magnets", headers=headers)
         if r.status_code != 200:
@@ -203,7 +204,7 @@ def main():
         # ── 1. Part ───────────────────────────────────────────────────────
         part_id = get_part_id(session, web, headers, args.part, args.debug)
         part = utils.get_object(
-            session, web, headers=headers, mtype="part", id=part_id, debug=args.debug
+            session, web, headers=headers, mtype="part", id=part_id
         )
         print(f"\nPart details")
         print(f"  name     : {part.get('name')}")

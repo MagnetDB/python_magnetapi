@@ -2,25 +2,46 @@
 create part
 """
 
+import requests
+
 from . import utils
 from . import material
 from .exceptions import ResourceConflictError, ResourceNotFoundError, ValidationError
 
 
 def create(
-    session,
+    session: requests.Session,
     api_server: str,
     headers: dict,
     data: dict,
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    create a part from a data dictionnary
+) -> int | None:
+    """Create a part from a data dictionary.
+
+    The "material" field may be a string (name lookup), a dict with an "id"
+    (API response object used directly), or a dict without "id" (create-or-lookup
+    by name).  Associated magnets and geometry files are linked after creation.
+
+    Args:
+        session: requests session
+        api_server: API server base URL
+        headers: HTTP request headers
+        data: part fields (must include "name" and "material")
+        verbose: enable verbose output
+        debug: enable debug output
+
+    Returns:
+        ID of the newly created part, or None if creation failed.
+
+    Raises:
+        ResourceConflictError: if a part with the same name already exists.
+        ResourceNotFoundError: if the referenced material name is not found.
+        ValidationError: if the "material" field type is invalid.
     """
 
     ids = utils.get_list(
-        session, api_server, headers=headers, mtype="part", debug=debug
+        session, api_server, headers=headers, mtype="part"
     )
     if data["name"] in ids:
         raise ResourceConflictError(
@@ -32,7 +53,7 @@ def create(
 
     # search or create material in db
     mat_ids = utils.get_list(
-        session, api_server, headers=headers, mtype="material", debug=debug
+        session, api_server, headers=headers, mtype="material"
     )
     mat = data["material"]
     if isinstance(mat, str):
@@ -47,16 +68,20 @@ def create(
                 required_by=data["name"],
             )
     elif isinstance(mat, dict):
-        mname = mat["name"]
-        _id = -1
-        if mname in mat_ids:
-            _id = mat_ids[mname]
+        # If the dict already has an "id" key it is an API response object —
+        # use the id directly without an extra lookup.
+        if "id" in mat:
+            data["material_id"] = mat["id"]
         else:
-            _id = material.create(
-                session, api_server, headers, mat, verbose=verbose, debug=debug
-            )
-
-        data["material_id"] = _id
+            mname = mat["name"]
+            _id = -1
+            if mname in mat_ids:
+                _id = mat_ids[mname]
+            else:
+                _id = material.create(
+                    session, api_server, headers, mat
+                )
+            data["material_id"] = _id
         del data["material"]
     else:
         raise ValidationError(
@@ -85,7 +110,7 @@ def create(
     # get material id, and set data accordingly
     print(f"part/create: data={data}")
     response = utils.post_data(
-        session, api_server, headers, data, "part", verbose, debug
+        session, api_server, headers, data, "part"
     )
     if response is None:
         print(f"part {data['name']} failed to be created")
@@ -96,7 +121,7 @@ def create(
     part_id = response["id"]
     for magnet in magnets:
         _ids = utils.get_list(
-            session, api_server, headers=headers, mtype="magnet", debug=debug
+            session, api_server, headers=headers, mtype="magnet"
         )
         if magnet in _ids:
             _id = _ids[magnet]
@@ -110,8 +135,6 @@ def create(
                 data={"part_id": part_id},
                 mtype="magnet",
                 dtype="part",
-                verbose=verbose,
-                debug=debug,
             )
         else:
             print(
@@ -135,8 +158,6 @@ def create(
             "geometrie",
             data={"type": "default"},
             files={"geometry": geomfile},
-            verbose=verbose,
-            debug=debug,
         )
 
     # add cad, ...

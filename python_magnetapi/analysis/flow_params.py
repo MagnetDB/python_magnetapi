@@ -179,12 +179,12 @@ def _detect_imax_from_files(
             ):
                 tformat = "%Y.%m.%d %H:%M:%S"
                 t0 = datetime.datetime.strptime(
-                    _df["Date"].iloc[0] + " " + _df["Time"].iloc[0], tformat
+                    f"{_df['Date'].iloc[0]} {_df['Time'].iloc[0]}", tformat
                 )
                 _df["t"] = _df.apply(
                     lambda row: (
                         datetime.datetime.strptime(
-                            row.Date + " " + row.Time, tformat
+                            f"{row.Date} {row.Time}", tformat
                         )
                         - t0
                     ).total_seconds(),
@@ -276,7 +276,6 @@ def compute(
         headers=headers,
         mtype="magnet",
         id=oid,
-        debug=debug,
     )
     if debug:
         print(f"magnet data: {json.dumps(odata, indent=2, default=str)}")
@@ -317,7 +316,7 @@ def compute(
 
     # Get sites associated with the magnet
     sites = utils.get_history(
-        session, api_server, headers, oid, mtype="magnet", otype="site", debug=debug
+        session, api_server, headers, oid, mtype="magnet", otype="site"
     )
     if debug:
         print(f"sites: {json.dumps(sites, indent=2, default=str)}")
@@ -340,8 +339,6 @@ def compute(
                 site["site_id"],
                 mtype="site",
                 otype="record",
-                verbose=debug,
-                debug=debug,
             )
 
             # Download record files (random sampling if many records)
@@ -369,7 +366,7 @@ def compute(
                 f = records[num_records[i]]
                 attach = f["attachment_id"]
                 filename = utils.download(
-                    session, api_server, headers, attach, verbose=debug, debug=debug
+                    session, api_server, headers, attach
                 )
                 housing = filename.split("_")[0]
                 files.append(filename)

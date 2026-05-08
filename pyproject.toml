@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-magnetapi"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python CLI for magnetDB - utilities to interact with MagnetDB"
 readme = "README.md"
 license = {text = "MIT"}
@@ -54,13 +54,17 @@ full = [
 python_magnetapi = "python_magnetapi.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Trophime/python_magnetapi"
-Repository = "https://github.com/Trophime/python_magnetapi"
-Documentation = "https://github.com/Trophime/python_magnetapi"
-"Bug Tracker" = "https://github.com/Trophime/python_magnetapi/issues"
+Homepage = "https://github.com/MagnetDB/python_magnetapi"
+Repository = "https://github.com/MagnetDB/python_magnetapi"
+Documentation = "https://github.com/MagnetDB/python_magnetapi"
+"Bug Tracker" = "https://github.com/MagnetDB/python_magnetapi/issues"
 
 [tool.setuptools]
-packages = ["python_magnetapi"]
+packages = [
+    "python_magnetapi",
+    "python_magnetapi.cli",
+    "python_magnetapi.cli.commands",
+]
 
 [tool.setuptools.package-data]
 python_magnetapi = ["py.typed"]
