@@ -302,6 +302,44 @@ with requests.Session() as s:
     obj = utils.get_object(s, web, headers=headers, mtype="magnet", id=ids["M19061901"])
 ```
 
+#### Analysis registry
+
+The `analysis` subpackage exposes a lightweight registry for post-processing computations. Built-in analyses are loaded lazily — their heavy optional dependencies (`magnettools`, `python_magnetcooling`, …) are only imported when the analysis is actually run.
+
+```python
+from python_magnetapi.analysis import names, get, register
+
+# Discover available analyses
+print(names())
+# ['inductances', 'flow_params', 'hoop_stress', 'hoop_stress_parallel']
+
+# Run a built-in analysis (deps loaded here, not at import time)
+entry = get("hoop_stress")
+print(entry["mtypes"])   # ['part']
+df = entry["compute"](session, web, headers=headers, mtype="part", oid=part_id)
+```
+
+Third-party packages can add their own analyses without modifying this package:
+
+```python
+# In your package's __init__.py or plugin module:
+from python_magnetapi.analysis import register
+
+register(
+    "my_analysis",
+    module="my_package.my_module",   # must expose a compute() function
+    mtypes=["magnet", "site"],
+    help="My custom post-processing",
+)
+```
+
+Alternatively, declare an entry point in `pyproject.toml` for automatic discovery:
+
+```toml
+[project.entry-points."python_magnetapi.analysis"]
+my_analysis = "my_package.my_module"
+```
+
 ## Testing
 
 ### Running the test suite
@@ -358,7 +396,15 @@ python_magnetapi/
 ├── part.py              # Part-specific operations
 ├── magnet.py            # Magnet-specific operations
 ├── site.py              # Site-specific operations
-└── ...
+├── geometry.py          # Geometry attachment utilities
+├── record.py            # Record management
+├── attachment.py        # Generic attachment helpers
+└── analysis/            # Post-processing analyses (registry-based)
+    ├── __init__.py      # Registry: register() / get() / names()
+    ├── inductances.py   # Self and mutual inductances
+    ├── flow_params.py   # Flow parameters from measurement records
+    ├── hoop_stress.py   # Hoop stress history (sequential)
+    └── hoop_stress_parallel.py  # Hoop stress history (parallel)
 tests/                   # Test suite
 debian/                  # Debian packaging files
 .devcontainer/           # Docker/DevContainer configuration

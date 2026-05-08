@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from rich.progress import track
 
-from . import utils
+from .. import utils
 
 from python_magnetrun.utils.files import concat_files
 from python_magnetrun.utils.plots import plot_files

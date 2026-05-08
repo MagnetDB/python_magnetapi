@@ -14,7 +14,7 @@ from scipy import optimize
 import json
 import pandas as pd
 from rich.progress import track
-from . import utils
+from .. import utils
 
 from python_magnetsetup.ana import msite_setup, magnet_setup
 from python_magnetsetup.config import appenv

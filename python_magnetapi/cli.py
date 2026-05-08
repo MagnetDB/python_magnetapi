@@ -645,8 +645,11 @@ def main():
             print(f'simulation {simulation["id"]} done')
 
         if args.command == "compute":
+            from .analysis import get as _get_analysis
+
             if args.inductances:
-                if otype in ["part"]:
+                entry = _get_analysis("inductances")
+                if otype not in entry["mtypes"]:
                     raise RuntimeError(
                         f"unexpected type {args.mtype} in compute subcommand inductances"
                     )
@@ -663,10 +666,8 @@ def main():
                         id=ids[args.name],
                         debug=args.debug,
                     )
-                    from . import inductances
-
                     print("Compute Self/Mutual inductances")
-                    inductances.compute(
+                    entry["compute"](
                         s,
                         api_server,
                         headers,
@@ -680,7 +681,8 @@ def main():
                     )
 
             if args.flow_params:
-                if otype != "magnet":
+                entry = _get_analysis("flow_params")
+                if otype not in entry["mtypes"]:
                     raise RuntimeError(
                         f"unexpected type {args.mtype} in compute subcommand flow_params - should be magnet"
                     )
@@ -697,9 +699,7 @@ def main():
                         id=ids[args.name],
                         debug=args.debug,
                     )
-                    from . import flow_params
-
-                    flow_params.compute(
+                    entry["compute"](
                         s,
                         web,
                         headers=headers,
@@ -713,7 +713,8 @@ def main():
                     )
 
             if args.hoop_stress:
-                if otype not in ["part"]:
+                entry = _get_analysis("hoop_stress")
+                if otype not in entry["mtypes"]:
                     raise RuntimeError(
                         f"unexpected type {args.mtype} in compute subcommand hoop_stress"
                     )
@@ -730,9 +731,7 @@ def main():
                         id=ids[args.name],
                         debug=args.debug,
                     )
-                    from . import hoop_stress
-
-                    hoop_stress.compute(
+                    entry["compute"](
                         s,
                         web,
                         headers=headers,

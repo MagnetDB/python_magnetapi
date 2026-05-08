@@ -67,7 +67,7 @@ from .hoop_stress import (          # noqa: F401  (re-exported for callers)
     plot_hoop_history,
     plot_hoop_stats,
 )
-from . import utils
+from .. import utils
 from python_magnetsetup.ana import msite_setup
 from python_magnetsetup.config import appenv
 from python_magnetrun.MagnetRun import MagnetRun
