@@ -92,3 +92,6 @@ tmp
 M*.json
 H*.json
 *.old
+
+# direnv – contains secrets (API keys), never commit
+.envrc

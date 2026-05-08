@@ -342,55 +342,80 @@ my_analysis = "my_package.my_module"
 
 ## Testing
 
-The test suite is split into two tiers:
+The test suite is organised into three tiers:
 
-| Tier | Location | Requires live server? |
-|------|----------|-----------------------|
-| CLI unit/integration | `tests/cli/` | No — uses mocks |
-| API integration | `tests/test_list.py` | Yes |
+| Tier | Marker | Location | Requires live server? |
+|------|--------|----------|-----------------------|
+| Smoke (offline) | `smoke` | `tests/test_smoke.py` | No |
+| Logging | *(none)* | `tests/test_list.py::TestLogging` | No |
+| Integration | `integration` | `tests/test_list.py` (`TestList`, `TestCrud`) | Yes — auto-skipped when unavailable |
+| CLI unit | *(none)* | `tests/cli/` | No — uses mocks |
 
-### CLI tests (no server required)
+### Environment variables
 
-```bash
-# Run only the CLI tests
-pytest tests/cli/ --verbose
-
-# Run with coverage
-pytest tests/cli/ --cov=python_magnetapi.cli --cov-report=term
-```
-
-### Full integration tests
-
-API integration tests require a running MagnetDB instance and a valid API key:
+Integration tests read their configuration from the environment:
 
 ```bash
+export MAGNETDB_API_SERVER=https://api.magnetdb-dev.local  # default
 export MAGNETDB_API_KEY=your_api_key_here
-
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest --verbose
-
-# Run with coverage report
-pytest --cov=python_magnetapi --cov-report=html --cov-report=term
 ```
 
-### Testing inside a Docker container
+#### direnv support
 
-When testing against a local MagnetDB instance running in Docker:
+If you use [direnv](https://direnv.net/), create a `.envrc` file in the project root:
 
 ```bash
-export MAGNETDB_API_KEY=test
-export MAGNETDB_API_SERVER=http://localhost:8000
-pytest --verbose
+export MAGNETDB_API_SERVER=https://api.magnetdb-dev.local
+export MAGNETDB_API_KEY=your_api_key_here
+```
+
+`tests/conftest.py` parses `.envrc` automatically at collection time, so the variables are available without having to `source` the file manually. Real environment variables always take precedence over `.envrc` values.
+
+### Auto-skip behaviour
+
+`conftest.py` probes the API server once per test session. If the server is unreachable or the API key is missing, every test marked `@pytest.mark.integration` is skipped automatically — no manual `pytest -m` incantation needed.
+
+### Running the tests
+
+```bash
+# Run everything (integration tests auto-skip when server is down)
+venv/bin/python -m pytest
+
+# Offline only — smoke + logging tests
+venv/bin/python -m pytest -m "smoke or not integration"
+
+# Smoke tests only
+venv/bin/python -m pytest -m smoke
+
+# Integration tests only (skipped automatically when server is down)
+venv/bin/python -m pytest -m integration
+
+# CLI unit tests only
+venv/bin/python -m pytest tests/cli/
+```
+
+### Coverage
+
+Coverage is enabled by default via `pyproject.toml`. Every `pytest` run produces:
+
+- A **terminal report** with missing lines (`--cov-report=term-missing`)
+- An **HTML report** in `htmlcov/` (`--cov-report=html`) — open `htmlcov/index.html` in a browser
+
+To run with coverage explicitly:
+
+```bash
+venv/bin/python -m pytest --cov=python_magnetapi --cov-report=term-missing --cov-report=html
+```
+
+To disable coverage for a quick run:
+
+```bash
+venv/bin/python -m pytest --no-cov
 ```
 
 ### Writing new tests
 
-Tests live in the `tests/` directory. Create files following the `test_*.py` naming convention.
-CLI command handlers can be tested without a live server by mocking `utils.get_list` and
-`utils.get_object`:
+Tests live in the `tests/` directory. Use the `@pytest.mark.smoke` decorator for offline tests and `@pytest.mark.integration` for tests that need a live server. CLI command handlers can be tested without a live server by mocking `utils.get_list` and `utils.get_object`:
 
 ```python
 import pytest
@@ -398,6 +423,7 @@ from unittest.mock import patch, Mock
 from python_magnetapi.cli.commands.list import ListCommand
 from python_magnetapi.cli.context import CLIContext
 
+@pytest.mark.smoke
 def test_list_command():
     context = Mock(spec=CLIContext)
     context.web = "http://test:8000"
@@ -446,10 +472,12 @@ python_magnetapi/
     ├── hoop_stress.py   # Hoop stress history (sequential)
     └── hoop_stress_parallel.py  # Hoop stress history (parallel)
 tests/                   # Test suite
-├── cli/                 # Unit/integration tests for the CLI (no server needed)
-│   ├── test_list_command.py
-│   └── test_cli_integration.py
-└── test_list.py         # Integration tests (require a running MagnetDB instance)
+├── conftest.py          # Shared fixtures, direnv loader, integration auto-skip
+├── test_smoke.py        # Offline smoke tests (no server required)
+├── test_list.py         # Integration tests (TestList, TestCrud) + TestLogging
+└── cli/                 # Unit/integration tests for the CLI (no server needed)
+    ├── test_list_command.py
+    └── test_cli_integration.py
 
 debian/                  # Debian packaging files
 .devcontainer/           # Docker/DevContainer configuration

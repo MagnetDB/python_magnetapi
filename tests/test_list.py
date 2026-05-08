@@ -1,5 +1,9 @@
+import logging
 import os
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
 import requests
 
 # add  @pytest.fixture to declare context
@@ -39,6 +43,7 @@ def create_entry_test(logged_in_browser):
 
 
 # def test_list(logged_in_browser):
+@pytest.mark.integration
 class TestList:
     def list_type(self, mtype: str):
         from python_magnetapi import utils
@@ -48,8 +53,6 @@ class TestList:
             api_server,
             headers=headers,
             mtype=mtype,
-            debug=False,
-            verbose=False,
         )
 
     def test_material(self):
@@ -104,6 +107,7 @@ ocreate = {
 }
 
 
+@pytest.mark.integration
 class TestCrud:
 
     # TODO add check and update entries to ocreate for test automation
@@ -219,3 +223,96 @@ class TestCrud:
     # delete site
     # delete magnet
     # delete part
+
+
+def _make_mock_session(items=None, last_page=1):
+    """Return a mock requests.Session whose get() returns a paginated response."""
+    if items is None:
+        items = [{"name": "test_object", "id": 1}]
+    response = MagicMock()
+    response.status_code = 200
+    response.text = json.dumps({"items": items, "current_page": 1, "last_page": last_page})
+    response.json.return_value = {"items": items, "current_page": 1, "last_page": last_page}
+    mock_session = MagicMock(spec=requests.Session)
+    mock_session.get.return_value = response
+    return mock_session
+
+
+class TestLogging:
+    def test_setup_logging_default_level(self):
+        from python_magnetapi.utils import setup_logging
+
+        setup_logging("WARNING")
+        assert logging.getLogger("python_magnetapi").getEffectiveLevel() <= logging.WARNING
+
+    def test_setup_logging_debug_level(self):
+        from python_magnetapi.utils import setup_logging
+
+        root = logging.getLogger()
+        root.handlers.clear()
+        setup_logging("DEBUG")
+        assert root.level == logging.DEBUG
+
+    def test_setup_logging_info_level(self):
+        from python_magnetapi.utils import setup_logging
+
+        root = logging.getLogger()
+        root.handlers.clear()
+        setup_logging("INFO")
+        assert root.level == logging.INFO
+
+    def test_get_list_emits_info(self, caplog):
+        from python_magnetapi import utils
+
+        mock_session = _make_mock_session()
+        with caplog.at_level(logging.INFO, logger="python_magnetapi.utils"):
+            utils.get_list(mock_session, "http://test-server", headers={}, mtype="magnet")
+
+        info_messages = [r.message for r in caplog.records if r.levelno == logging.INFO]
+        assert any("get_list" in msg for msg in info_messages)
+        assert any("magnet" in msg for msg in info_messages)
+
+    def test_get_list_emits_debug(self, caplog):
+        from python_magnetapi import utils
+
+        mock_session = _make_mock_session()
+        with caplog.at_level(logging.DEBUG, logger="python_magnetapi.utils"):
+            utils.get_list(mock_session, "http://test-server", headers={}, mtype="magnet")
+
+        debug_messages = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+        assert any("_page_dict" in msg for msg in debug_messages)
+
+    def test_get_list_error_logged_on_bad_status(self, caplog):
+        from python_magnetapi import utils
+
+        response = MagicMock()
+        response.status_code = 404
+        response.json.return_value = {"detail": "not found"}
+        mock_session = MagicMock(spec=requests.Session)
+        mock_session.get.return_value = response
+
+        with caplog.at_level(logging.ERROR, logger="python_magnetapi.utils"):
+            utils.get_list(mock_session, "http://test-server", headers={}, mtype="magnet")
+
+        error_messages = [r.message for r in caplog.records if r.levelno == logging.ERROR]
+        assert any("not found" in msg for msg in error_messages)
+
+    def test_get_list_filters_info_logged(self, caplog):
+        from python_magnetapi import utils
+
+        mock_session = _make_mock_session(
+            items=[{"name": "obj1", "id": 1, "status": "active"}]
+        )
+        filters = {"status": "active"}
+        with caplog.at_level(logging.INFO, logger="python_magnetapi.utils"):
+            utils.get_list(
+                mock_session,
+                "http://test-server",
+                headers={},
+                mtype="magnet",
+                filters=filters,
+            )
+
+        info_messages = [r.message for r in caplog.records if r.levelno == logging.INFO]
+        assert any("filters" in msg for msg in info_messages)
+

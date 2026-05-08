@@ -75,7 +75,11 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --cov=python_magnetapi --cov-report=term-missing --cov-report=html"
+markers = [
+    "smoke: fast offline tests that do not require a server",
+    "integration: tests that require a running MagnetDB server (skipped when server is unreachable)",
+]
 
 # Coverage configuration
 [tool.coverage.run]
