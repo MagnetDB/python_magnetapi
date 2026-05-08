@@ -15,6 +15,7 @@ pip install -e ".[doc]"
 This installs:
 - sphinx
 - sphinx-rtd-theme
+- myst-parser
 
 Optionally, for better type hint rendering:
 ```bash
@@ -50,29 +51,31 @@ The generated HTML documentation will be in `_build/html/`. Open `_build/html/in
 ```
 docs/
 ├── conf.py              # Sphinx configuration
-├── index.rst            # Main documentation page
-├── installation.rst     # Installation instructions
-├── quickstart.rst       # Quick start guide
-├── configuration.rst    # Server & environment configuration
-├── cli.rst              # CLI reference
-├── usage.rst            # Advanced usage guide
-├── testing.rst          # Testing guide
-├── contributing.rst     # Contributing guide
+├── index.md             # Main documentation page
+├── installation.md      # Installation instructions
+├── quickstart.md        # Quick start guide
+├── configuration.md     # Server & environment configuration
+├── cli.md               # CLI reference
+├── usage.md             # Advanced usage guide
+├── testing.md           # Testing guide
+├── contributing.md      # Contributing guide
 ├── api/                 # API reference (autodoc)
-│   ├── index.rst
-│   ├── utils.rst
-│   ├── cli_module.rst
-│   ├── material.rst
-│   ├── part.rst
-│   ├── magnet.rst
-│   ├── site.rst
-│   ├── geometry.rst
-│   ├── record.rst
-│   ├── hoop_stress.rst
-│   └── flow_params.rst
+│   ├── index.md
+│   ├── utils.md
+│   ├── cli_module.md
+│   ├── material.md
+│   ├── part.md
+│   ├── magnet.md
+│   ├── site.md
+│   ├── geometry.md
+│   ├── record.md
+│   ├── analysis.md
+│   ├── hoop_stress.md
+│   ├── hoop_stress_parallel.md
+│   ├── inductances.md
+│   └── flow_params.md
 ├── Makefile             # Unix build script
 ├── make.bat             # Windows build script
-├── _static/             # Static files (CSS, images)
 └── _templates/          # Custom Sphinx templates
 ```
 

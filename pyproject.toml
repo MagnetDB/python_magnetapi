@@ -42,6 +42,7 @@ dev = [
 doc = [
     "sphinx>=5.0.0",
     "sphinx-rtd-theme",
+    "myst-parser",
 ]
 full = [
     "python-magnetsetup",

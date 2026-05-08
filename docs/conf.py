@@ -28,6 +28,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
+    "myst_parser",
 ]
 
 # Try to load optional extensions
@@ -39,7 +40,16 @@ except ImportError:
     pass
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md"]
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
+myst_enable_extensions = [
+    "colon_fence",
+]
 
 # The master toctree document
 master_doc = "index"
@@ -48,7 +58,7 @@ master_doc = "index"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+html_static_path = []
 
 # Theme options for Read the Docs theme
 html_theme_options = {
@@ -86,10 +96,12 @@ autodoc_mock_imports = [
     "pandas",
     "numpy",
     "scipy",
+    "matplotlib",
     "param",
     "rich",
     "python_magnetsetup",
     "python_magnetrun",
+    "python_magnetcooling",
     "magnettools",
 ]
 
