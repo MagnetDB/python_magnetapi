@@ -1,9 +1,12 @@
-"""
-Utils for interaction with MagnetDB
-"""
+"""Utils for interaction with MagnetDB"""
+
+from __future__ import annotations
 
 import json
 import re
+from typing import Any, Dict, List, Optional
+
+import requests
 
 from .exceptions import (
     AuthenticationError,
@@ -15,29 +18,37 @@ from .exceptions import (
 
 
 def get_list(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     mtype: str = "magnets",
-    filters: dict = None,
+    filters: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
-) -> dict:
-    """
-    return list of ids for selected type
+) -> Dict[str, int]:
+    """Retrieve list of object IDs for a given resource type.
+
+    Fetches paginated results from the MagnetDB API and returns a dictionary
+    mapping object names to their IDs. Optionally filters results based on
+    provided attribute-value pairs.
 
     Args:
-        session: requests session
-        api_server: API server URL
-        headers: request headers
-        mtype: object type (magnet, part, site, etc.)
-        filters: dict of attribute:value pairs to filter results
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        mtype: Resource type (e.g., "magnet", "part", "site", "simulation")
+        filters: Optional dict of attribute:value pairs to filter results
                  e.g., {"status": "active", "type": "helix"}
-        verbose: enable verbose output
-        debug: enable debug output
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
 
     Returns:
-        dict: mapping of object names to IDs (filtered if filters provided)
+        Dictionary mapping object names (str) to their IDs (int)
+
+    Example:
+        >>> ids = get_list(session, "https://api.example.com", headers, "magnet")
+        >>> print(ids)
+        {'M9': 123, 'HL31': 456}
     """
     if verbose:
         print(f"get_list: api_server={api_server}, mtype={mtype}")
@@ -118,16 +129,27 @@ def get_list(
 
 
 def get_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "magnet",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    return id of an object with name == name
+) -> Optional[Dict[str, Any]]:
+    """Retrieve a single object by ID from the API.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: Unique identifier of the object to retrieve
+        mtype: Resource type (e.g., "magnet", "part", "site")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        Dictionary containing the object data, or None if request fails
     """
     if verbose:
         print(f"get_object: api_server={api_server}, mtype={mtype}, id={id}")
@@ -144,17 +166,37 @@ def get_object(
 
 
 def create_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     mtype: str = "magnet",
-    data: dict = {},
+    data: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
 ) -> int:
+    """Create a new object in the MagnetDB API.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        mtype: Resource type (e.g., "magnet", "part", "simulation", "material")
+        data: Dictionary containing object data to create
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        ID of the newly created object
+
+    Raises:
+        AuthenticationError: If authentication fails (401)
+        AuthorizationError: If user lacks permission (403)
+        ResourceConflictError: If resource already exists (409)
+        ServerError: If server error occurs (5xx)
+        MagnetAPIException: For other API errors
     """
-    create an object and return its id
-    """
+    if data is None:
+        data = {}
     if verbose:
         print(f"create_object: api_server={api_server}, mtype={mtype}, data={data}")
 
@@ -206,19 +248,36 @@ def create_object(
 
 
 def update_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "magnet",
-    data: dict = {},
-    files: dict = {},
+    data: Optional[Dict[str, Any]] = None,
+    files: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
-):
+) -> Optional[Dict[str, Any]]:
+    """Update an existing object in the MagnetDB API.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: Unique identifier of the object to update
+        mtype: Resource type (e.g., "magnet", "part", "site")
+        data: Dictionary containing fields to update
+        files: Dictionary containing files to upload (currently unused)
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        Updated object data as dictionary, or None if request fails
     """
-    update an object
-    """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     if verbose:
         print(f"update_object: api_server={api_server}, mtype={mtype}, data={data}")
 
@@ -241,20 +300,38 @@ def update_object(
 
 
 def update_associative_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "magnet",
     dtype: str = "part",
-    data: dict = {},
-    files: dict = {},
+    data: Optional[Dict[str, Any]] = None,
+    files: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
-):
+) -> Optional[Dict[str, Any]]:
+    """Update an object in an associative table (many-to-many relationship).
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: ID of the parent object (e.g., magnet ID)
+        mtype: Parent resource type (e.g., "magnet")
+        dtype: Related resource type (e.g., "part")
+        data: Dictionary containing fields to update in the association
+        files: Dictionary containing files to upload (currently unused)
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        Updated association data as dictionary, or None if request fails
     """
-    update an object in associative table
-    """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     if verbose:
         print(
             f"update_associative_object: api_server={api_server}, mtype={mtype}, data={data}"
@@ -279,16 +356,27 @@ def update_associative_object(
 
 
 def del_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     mtype: str = "magnet",
-    id: int = None,
+    id: Optional[int] = None,
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    delete an object given its id
+) -> Optional[Dict[str, Any]]:
+    """Delete an object from the MagnetDB API.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        mtype: Resource type (e.g., "magnet", "part", "site")
+        id: Unique identifier of the object to delete
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        API response as dictionary, or None if request fails
     """
     if verbose:
         print(f"del_object: api_server={api_server}, mtype={mtype}, id={id}")
@@ -305,18 +393,31 @@ def del_object(
 
 
 def add_data_to_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
-    data: dict,
+    data: Dict[str, Any],
     mtype: str = "magnet",
     dtype: str = "part",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    add data to an object
+) -> None:
+    """Add data to an object via POST to an associative endpoint.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: ID of the parent object
+        data: Dictionary containing data to add
+        mtype: Parent resource type (e.g., "magnet")
+        dtype: Related resource type (e.g., "part")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        None
     """
     if verbose:
         print(
@@ -339,19 +440,34 @@ def add_data_to_object(
 
 
 def add_files_to_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "part",
     dtype: str = "geometrie",
-    files: dict = {},
+    files: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
-):
+) -> None:
+    """Upload files to an object via POST to an associative endpoint.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: ID of the parent object
+        mtype: Parent resource type (e.g., "part")
+        dtype: Related resource type (e.g., "geometrie")
+        files: Dictionary containing file data to upload
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        None
     """
-    add files to an object
-    """
+    if files is None:
+        files = {}
     if verbose:
         print(
             f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
@@ -370,20 +486,38 @@ def add_files_to_object(
 
 
 def add_data_files_to_object(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "part",
     dtype: str = "geometrie",
-    data: dict = {},
-    files: dict = {},
+    data: Optional[Dict[str, Any]] = None,
+    files: Optional[Dict[str, Any]] = None,
     verbose: bool = False,
     debug: bool = False,
-):
+) -> None:
+    """Upload both data and files to an object via POST.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: ID of the parent object
+        mtype: Parent resource type (e.g., "part")
+        dtype: Related resource type (e.g., "geometrie")
+        data: Dictionary containing data to upload
+        files: Dictionary containing file data to upload
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        None
     """
-    add data and files to an object
-    """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     if verbose:
         print(
             f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
@@ -403,19 +537,30 @@ def add_data_files_to_object(
 
 
 def get_history(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     id: int,
     mtype: str = "magnet",
-    otype="record",
+    otype: str = "record",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    return list of otype ids attached to object id
+) -> Optional[List[Dict[str, Any]]]:
+    """Retrieve history of related objects (records or sites) for a given object.
 
-    otype = site|record
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        id: ID of the parent object
+        mtype: Parent resource type ("part", "magnet", or "site")
+        otype: Related object type ("record" or "site")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        List of related objects as dictionaries, empty list if mtype not supported,
+        or None if request fails
     """
     if verbose:
         print(
@@ -445,17 +590,27 @@ def get_history(
 
 
 def get_data(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     oid: int,
     mtype: str = "magnet",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    return data attached to mtype object with oid
+) -> Optional[Dict[str, Any]]:
+    """Retrieve metadata attached to an object.
 
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        oid: Unique identifier of the object
+        mtype: Resource type (e.g., "magnet", "part")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        Dictionary containing metadata, or None if request fails
     """
     if verbose:
         print(f"get_data: api_server={api_server}, mtype={mtype}, id={oid}")
@@ -474,17 +629,27 @@ def get_data(
 
 
 def post_data(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
-    data: dict,
+    headers: Dict[str, str],
+    data: Dict[str, Any],
     mtype: str = "magnet",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    send data to create mtype object
+) -> Optional[Dict[str, Any]]:
+    """Send form data to create an object via POST.
 
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        data: Dictionary containing form data to post
+        mtype: Resource type (e.g., "magnet", "part")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        API response as dictionary, or None if request fails
     """
     if verbose:
         print(f"post_data: api_server={api_server}, mtype={mtype}, data={data}")
@@ -503,17 +668,34 @@ def post_data(
 
 
 def post_json(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
-    data: dict,
+    headers: Dict[str, str],
+    data: Dict[str, Any],
     mtype: str = "magnet",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    send json to create mtype object
+) -> Dict[str, Any]:
+    """Send JSON data to create an object via POST.
 
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        data: Dictionary containing JSON data to post
+        mtype: Resource type (e.g., "magnet", "simulation", "material")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        API response as dictionary
+
+    Raises:
+        AuthenticationError: If authentication fails (401)
+        AuthorizationError: If user lacks permission (403)
+        ResourceConflictError: If resource already exists (409)
+        ServerError: If server error occurs (5xx)
+        MagnetAPIException: For other API errors
     """
     if verbose:
         print(f"post_json: api_server={api_server}, mtype={mtype}, data={data}")
@@ -559,17 +741,33 @@ def post_json(
 
 
 def post_file(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
-    data: dict,
+    headers: Dict[str, str],
+    data: Dict[str, Any],
     mtype: str = "magnet",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    send data to upload
+) -> Dict[str, Any]:
+    """Upload files to create an object via POST.
 
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        data: Dictionary containing file data to upload
+        mtype: Resource type (e.g., "attachment")
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        API response as dictionary
+
+    Raises:
+        AuthenticationError: If authentication fails (401)
+        AuthorizationError: If user lacks permission (403)
+        ServerError: If server error occurs (5xx)
+        MagnetAPIException: For other API errors
     """
     if verbose:
         print(f"post_file: api_server={api_server}, mtype={mtype}, files={data}")
@@ -611,16 +809,27 @@ def post_file(
 
 
 def download(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     attach: str,
     wd: str = "",
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    download file
+) -> Optional[str]:
+    """Download an attachment file from the MagnetDB API.
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        attach: Attachment ID or identifier
+        wd: Working directory where file should be saved (default: current directory)
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        Filename of the downloaded file, or None if download fails
     """
     import os
 
@@ -649,15 +858,27 @@ def download(
 
 
 def upload(
-    session,
+    session: requests.Session,
     api_server: str,
-    headers: dict,
+    headers: Dict[str, str],
     attach: str,
     verbose: bool = False,
     debug: bool = False,
-):
-    """
-    upload file
+) -> None:
+    """Upload a file to the MagnetDB API.
+
+    Note: This function is currently not implemented (stub).
+
+    Args:
+        session: Active requests session with authentication
+        api_server: Base URL of the API server
+        headers: HTTP request headers including authentication token
+        attach: File path or identifier to upload
+        verbose: If True, print informational messages
+        debug: If True, print detailed debugging information
+
+    Returns:
+        None
     """
     if verbose:
         print(f"upload: api_server={api_server}, attach={attach}")
