@@ -392,25 +392,34 @@ def update_object(
         id: object ID to update
         mtype: resource type (magnet, part, site, etc.)
         data: fields to update
-        files: files to attach (unused by the current endpoint)
+        files: files to upload (dict of {field_name: file_handle})
 
     Returns:
         Updated object data dict, or None on error.
     """
-    logger.info(f"update_object: api_server={api_server}, mtype={mtype}, data={data}")
+    logger.info(
+        f"update_object: api_server={api_server}, mtype={mtype}, data={data}, "
+        f"files={list(files.keys()) if files else []}"
+    )
 
     web = f"{api_server}/api/{mtype}s/{id}"
-    r = session.patch(web, data=data, headers=headers)
+
+    # Use files parameter if provided, otherwise just send data
+    if files:
+        r = session.patch(web, data=data, files=files, headers=headers)
+    else:
+        r = session.patch(web, data=data, headers=headers)
 
     response = r.json()
     if r.status_code != 200:
         logger.error(
-            f"update_object: api_server={web}, mtype={mtype}, response={response['detail']}"
+            f"update_object: api_server={web}, mtype={mtype}, "
+            f"response={response.get('detail', response)}"
         )
         return None
 
     logger.debug(
-        f"update_object: {web}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+        f"update_object: {web}, {mtype.upper()} updated: \n{json.dumps(response, indent=4)}"
     )
 
     return response
