@@ -142,7 +142,8 @@ def create(
             del data["material"]
         else:
             raise ResourceNotFoundError(
-                f"Material '{mat}' not found. Create the material before creating part '{data['name']}'",
+                f"Material '{mat}' not found. "
+                f"Create the material before creating part '{data['name']}'",
                 object_name=mat,
                 object_type="material",
                 required_by=data["name"],
@@ -165,7 +166,8 @@ def create(
         del data["material"]
     else:
         raise ValidationError(
-            f"Invalid material type for part '{data['name']}'. Expected string or dict, got {type(mat).__name__}",
+            f"Invalid material type for part '{data['name']}'. "
+            f"Expected string or dict, got {type(mat).__name__}",
             field="material",
             value_type=type(mat).__name__,
             expected_types=["str", "dict"],

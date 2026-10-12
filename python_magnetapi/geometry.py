@@ -115,6 +115,7 @@ def create(
     geom_attached_id = part_data["geometries"][0]["attachment"]["id"]
     geom_attached_name = part_data["geometries"][0]["attachment"]["filename"]
     print(
-        f"geometry/create: geom_id={geom_id}, geom_attached_id={geom_attached_id}, geom_attached_name={geom_attached_name}"
+        f"geometry/create: geom_id={geom_id}, geom_attached_id={geom_attached_id}, "
+        f"geom_attached_name={geom_attached_name}"
     )
     return geom_id

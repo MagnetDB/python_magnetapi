@@ -181,8 +181,11 @@ class HoopBasis:
         comp_j_unit:  list[float] = []   # j at own source = 1 A
 
         # own-source index for each type
-        type_to_src_idx = {"H": 0, "B": source_labels.index("IB_ref") if "IB_ref" in source_labels else -1,
-                           "S": source_labels.index("IS_ref") if "IS_ref" in source_labels else -1}
+        type_to_src_idx = {
+            "H": 0,
+            "B": source_labels.index("IB_ref") if "IB_ref" in source_labels else -1,
+            "S": source_labels.index("IS_ref") if "IS_ref" in source_labels else -1,
+        }
 
         # Perform n_sources basis calls; collect Bz[T] per component
         # basis_Bz[src_idx][comp_name] = B̃_src at component radius (in T/A)
@@ -190,7 +193,7 @@ class HoopBasis:
 
         n0 = list(icurrents_template)
 
-        for src_idx, src_label in enumerate(source_labels):
+        for src_idx in range(n_sources):
             # unit current vector: 1 A in source src_idx, 0 elsewhere
             v = [0.0] * n_sources
             v[src_idx] = 1.0
@@ -276,7 +279,7 @@ class HoopBasis:
         n = None
         parts: dict[str, np.ndarray] = {}
         for arr, label in zip(
-            [ih_arr, ib_arr, is_arr], ["IH_ref", "IB_ref", "IS_ref"]
+            [ih_arr, ib_arr, is_arr], ["IH_ref", "IB_ref", "IS_ref"], strict=True
         ):
             if arr is not None and label in self.source_names:
                 parts[label] = arr
@@ -442,7 +445,8 @@ def compute(
                 site_data = msite_setup(env, config_data["results"], debug)
             except Exception as exc:
                 warnings.warn(
-                    f"msite_setup failed for site '{site_name}': {exc} – skipping"
+                    f"msite_setup failed for site '{site_name}': {exc} – skipping",
+                    stacklevel=2,
                 )
                 continue
 
@@ -457,7 +461,8 @@ def compute(
                 )
             except Exception as exc:
                 warnings.warn(
-                    f"HoopBasis precomputation failed for site '{site_name}': {exc} – skipping"
+                    f"HoopBasis precomputation failed for site '{site_name}': {exc} – skipping",
+                    stacklevel=2,
                 )
                 continue
 
@@ -494,7 +499,7 @@ def compute(
                     else:
                         rundata = MagnetRun.fromcsv(housing, site_name, filename)
                 except Exception as exc:
-                    warnings.warn(f"Cannot parse record '{rec.get('name')}': {exc}")
+                    warnings.warn(f"Cannot parse record '{rec.get('name')}': {exc}", stacklevel=2)
                     continue
 
                 raw_df = rundata.MagnetData.Data
@@ -506,7 +511,8 @@ def compute(
                 if not current_cols:
                     warnings.warn(
                         f"Record '{rec.get('name')}': no matching current columns "
-                        f"(need {basis.source_names}) – skipping"
+                        f"(need {basis.source_names}) – skipping",
+                        stacklevel=2,
                     )
                     continue
                 df_run = raw_df[available].copy()

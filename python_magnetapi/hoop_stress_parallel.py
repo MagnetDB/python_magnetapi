@@ -111,7 +111,7 @@ def _process_record(task: _RecordTask) -> pd.DataFrame | None:
         else:
             rundata = MagnetRun.fromcsv(task.housing, task.site_name, task.filepath)
     except Exception as exc:
-        warnings.warn(f"[{task.record_name}] cannot parse: {exc}")
+        warnings.warn(f"[{task.record_name}] cannot parse: {exc}", stacklevel=2)
         return None
 
     raw_df = rundata.MagnetData.Data
@@ -120,7 +120,8 @@ def _process_record(task: _RecordTask) -> pd.DataFrame | None:
     if not current_cols:
         warnings.warn(
             f"[{task.record_name}] no matching current columns "
-            f"(need {task.basis.source_names}) – skipped"
+            f"(need {task.basis.source_names}) – skipped",
+            stacklevel=2,
         )
         return None
 
@@ -131,12 +132,15 @@ def _process_record(task: _RecordTask) -> pd.DataFrame | None:
     try:
         hoop_df = task.basis.eval_dataframe(ih_arr, ib_arr, is_arr)
     except Exception as exc:
-        warnings.warn(f"[{task.record_name}] eval_dataframe failed: {exc}")
+        warnings.warn(f"[{task.record_name}] eval_dataframe failed: {exc}", stacklevel=2)
         return None
 
     # Prepend metadata columns
     n = len(hoop_df)
-    hoop_df.insert(0, "timestamp", raw_df["timestamp"].to_numpy() if "timestamp" in raw_df.columns else np.arange(n))
+    timestamps = (
+        raw_df["timestamp"].to_numpy() if "timestamp" in raw_df.columns else np.arange(n)
+    )
+    hoop_df.insert(0, "timestamp", timestamps)
     hoop_df.insert(1, "site",      task.site_name)
     hoop_df.insert(2, "record",    task.record_name)
     if "Field" in raw_df.columns:
@@ -299,7 +303,9 @@ def compute(
                 try:
                     site_data = msite_setup(env, config_data["results"], debug)
                 except Exception as exc:
-                    warnings.warn(f"msite_setup failed for '{site_name}': {exc} – skipping")
+                    warnings.warn(
+                        f"msite_setup failed for '{site_name}': {exc} – skipping", stacklevel=2
+                    )
                     progress.advance(site_bar)
                     continue
 
@@ -312,7 +318,9 @@ def compute(
                         Tubes, Helices, OHelices, BMagnets, UMagnets, icurrents
                     )
                 except Exception as exc:
-                    warnings.warn(f"HoopBasis failed for '{site_name}': {exc} – skipping")
+                    warnings.warn(
+                        f"HoopBasis failed for '{site_name}': {exc} – skipping", stacklevel=2
+                    )
                     progress.advance(site_bar)
                     continue
 
@@ -394,7 +402,8 @@ def compute(
                     except Exception as exc:
                         warnings.warn(
                             f"Worker error for record '{task_desc.record_name}' "
-                            f"in site '{task_desc.site_name}': {exc}"
+                            f"in site '{task_desc.site_name}': {exc}",
+                            stacklevel=2,
                         )
                         result_df = None
 

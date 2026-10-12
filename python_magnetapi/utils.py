@@ -98,7 +98,8 @@ def get_list(
                     resource_type,
                 )
                 object["name"] = (
-                    f"{resource['name']}: {object['method']}/{object['geometry']}/{object['model']}/{object['cooling']}"
+                    f"{resource['name']}: {object['method']}/{object['geometry']}"
+                    f"/{object['model']}/{object['cooling']}"
                 )
             objects[object["name"]] = object
 
@@ -221,9 +222,8 @@ def get_parts_for_magnet(
     logger.info(
         f"get_parts_for_magnet: {len(rows['parts'])} parts found for magnet {magnet_id}"
     )
-    logger.debug(
-        f"get_parts_for_magnet: {[magnet_part.get('part').get('id') for magnet_part in rows['parts']]} parts found for magnet {magnet_id}"
-    )
+    part_ids = [magnet_part.get("part").get("id") for magnet_part in rows["parts"]]
+    logger.debug(f"get_parts_for_magnet: {part_ids} parts found for magnet {magnet_id}")
 
     parts = []
 
@@ -243,7 +243,8 @@ def get_parts_for_magnet(
                 mtype="part",
             )
             logger.debug(
-                f"name={part.get('name')}, type={part.get('type')}, material={part.get('material').get('name') if part.get('material') else None}"
+                f"name={part.get('name')}, type={part.get('type')}, "
+                f"material={part.get('material').get('name') if part.get('material') else None}"
             )
             if part:
                 parts.append(part)
@@ -288,7 +289,8 @@ def get_magnets_for_site(
         f"get_magnets_for_site: {len(site_magnets)} magnets found for site {site_id}"
     )
     logger.debug(
-        f"get_magnets_for_site: {[sm.get('magnet', {}).get('id') for sm in site_magnets]} magnets found for site {site_id}"
+        f"get_magnets_for_site: {[sm.get('magnet', {}).get('id') for sm in site_magnets]}"
+        f" magnets found for site {site_id}"
     )
 
     magnets = []
@@ -321,11 +323,13 @@ def create_object(
     api_server: str,
     headers: dict,
     mtype: str = "magnet",
-    data: dict = {},
+    data: dict | None = None,
 ) -> int:
     """
     create an object and return its id
     """
+    if data is None:
+        data = {}
     logger.info(f"create_object: api_server={api_server}, mtype={mtype}, data={data}")
 
     web = f"{api_server}/api/{mtype}s"
@@ -380,8 +384,8 @@ def update_object(
     headers: dict,
     id: int,
     mtype: str = "magnet",
-    data: dict = {},
-    files: dict = {},
+    data: dict | None = None,
+    files: dict | None = None,
 ) -> dict | None:
     """Update an existing object via PATCH.
 
@@ -397,6 +401,10 @@ def update_object(
     Returns:
         Updated object data dict, or None on error.
     """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     logger.info(
         f"update_object: api_server={api_server}, mtype={mtype}, data={data}, "
         f"files={list(files.keys()) if files else []}"
@@ -432,8 +440,8 @@ def update_associative_object(
     id: int,
     mtype: str = "magnet",
     dtype: str = "part",
-    data: dict = {},
-    files: dict = {},
+    data: dict | None = None,
+    files: dict | None = None,
 ) -> dict | None:
     """Update an associative (join-table) object via PATCH.
 
@@ -450,6 +458,10 @@ def update_associative_object(
     Returns:
         Updated join-row data dict, or None on error.
     """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     logger.info(
         f"update_associative_object: api_server={api_server}, mtype={mtype}, data={data}"
     )
@@ -460,12 +472,14 @@ def update_associative_object(
     response = r.json()
     if r.status_code != 200:
         logger.error(
-            f"update_associative_object: api_server={web}, mtype={mtype}, response={response['detail']}"
+            f"update_associative_object: api_server={web}, "
+            f"mtype={mtype}, response={response['detail']}"
         )
         return None
 
     logger.debug(
-        f"update_associative_object: {web}, {mtype.upper()} created: \n{json.dumps(response, indent=4)}"
+        f"update_associative_object: {web}, "
+        f"{mtype.upper()} created: \n{json.dumps(response, indent=4)}"
     )
 
     return response
@@ -524,7 +538,8 @@ def add_data_to_object(
         dtype: nested resource type (e.g. "part")
     """
     logger.info(
-        f"add_data_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, data={data}"
+        f"add_data_to_object: api_server={api_server}, mtype={mtype}, "
+        f"id={id}, dtype={dtype}, data={data}"
     )
 
     logger.info(f"add_data_to_object: {api_server}/api/{mtype}s/{id}/{dtype}s")
@@ -549,7 +564,7 @@ def add_files_to_object(
     id: int,
     mtype: str = "part",
     dtype: str = "geometrie",
-    files: dict = {},
+    files: dict | None = None,
 ) -> None:
     """Upload files to a nested resource endpoint (e.g. /api/parts/{id}/geometries).
 
@@ -562,8 +577,11 @@ def add_files_to_object(
         dtype: nested resource type (e.g. "geometrie")
         files: multipart file dict accepted by requests
     """
+    if files is None:
+        files = {}
     logger.info(
-        f"add_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
+        f"add_files_to_object: api_server={api_server}, mtype={mtype}, "
+        f"id={id}, dtype={dtype}, files={files}"
     )
 
     r = session.post(
@@ -585,8 +603,8 @@ def add_data_files_to_object(
     id: int,
     mtype: str = "part",
     dtype: str = "geometrie",
-    data: dict = {},
-    files: dict = {},
+    data: dict | None = None,
+    files: dict | None = None,
 ) -> None:
     """Post both form data and files to a nested resource endpoint.
 
@@ -600,8 +618,13 @@ def add_data_files_to_object(
         data: form data fields (e.g. {"type": "default"})
         files: multipart file dict accepted by requests
     """
+    if data is None:
+        data = {}
+    if files is None:
+        files = {}
     logger.info(
-        f"add_data_files_to_object: api_server={api_server}, mtype={mtype}, id={id}, dtype={dtype}, files={files}"
+        f"add_data_files_to_object: api_server={api_server}, mtype={mtype}, "
+        f"id={id}, dtype={dtype}, files={files}"
     )
 
     r = session.post(
@@ -647,7 +670,8 @@ def get_history(
     response = r.json()
     if r.status_code != 200:
         logger.error(
-            f"get_history: api_server={api_server}, mtype={mtype}, otype={otype}, id={id} response={response['detail']}"
+            f"get_history: api_server={api_server}, mtype={mtype}, "
+            f"otype={otype}, id={id} response={response['detail']}"
         )
         return None
 
@@ -656,7 +680,8 @@ def get_history(
         response = r.json()
         if r.status_code != 200:
             logger.error(
-                f"get_history: {api_server}/api/{mtype}s/{id}/{otype}s response={response['detail']}"
+                f"get_history: {api_server}/api/{mtype}s/{id}/{otype}s"
+                f" response={response['detail']}"
             )
             return None
         return response[f"{otype}s"]
@@ -689,7 +714,8 @@ def get_data(
     response = r.json()
     if r.status_code != 200:
         logger.error(
-            f"get_data: api_server={api_server}/api/{mtype}s/{oid}/mdata, mtype={mtype}, id={oid} response={response['detail']}"
+            f"get_data: api_server={api_server}/api/{mtype}s/{oid}/mdata, "
+            f"mtype={mtype}, id={oid} response={response['detail']}"
         )
         return None
 
@@ -722,7 +748,8 @@ def post_data(
     response = r.json()
     if r.status_code != 200:
         logger.error(
-            f"post_data: api_server={api_server}/api/{mtype}s, mtype={mtype}, response={response['detail']}"
+            f"post_data: api_server={api_server}/api/{mtype}s, "
+            f"mtype={mtype}, response={response['detail']}"
         )
         return None
 

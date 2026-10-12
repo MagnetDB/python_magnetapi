@@ -35,7 +35,7 @@ from python_magnetapi import utils
 from python_magnetapi.cli.parser import add_server_arguments
 
 
-class PartType(str, enum.Enum):
+class PartType(enum.StrEnum):
     """Part types as defined in MagnetDB."""
 
     HELIX = "helix"

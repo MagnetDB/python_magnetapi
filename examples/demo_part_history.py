@@ -212,7 +212,8 @@ def main():
         sorted_sites = sorted(all_sites.values(), key=_parse_date)
 
         print(
-            f"Sites that used this part (via its magnets)  ({len(sorted_sites)} found, sorted by date)"
+            "Sites that used this part (via its magnets) "
+            f" ({len(sorted_sites)} found, sorted by date)"
         )
         print("-" * 60)
         if sorted_sites:

@@ -89,7 +89,8 @@ except ImportError:
     HAS_MT = False
     warnings.warn(
         "magnettools not importable — .d-file backend unavailable; "
-        "falling back to API/JSON geometry."
+        "falling back to API/JSON geometry.",
+        stacklevel=1,
     )
 
 # ---------------------------------------------------------------------------
@@ -106,7 +107,7 @@ DEFAULT_TEAU = 30.0  # °C
 # ---------------------------------------------------------------------------
 # Part types
 # ---------------------------------------------------------------------------
-class PartType(str, enum.Enum):
+class PartType(enum.StrEnum):
     """Part types as defined in MagnetDB."""
 
     HELIX = "helix"
@@ -282,7 +283,7 @@ def _load_from_dfile(
         pitches = [tube.get_pitch(i) for i in range(n_sec)]
         nturns = [tube.get_nturn(i) for i in range(n_sec)]
         total_turns = sum(nturns)
-        total_height = sum(p * n for p, n in zip(pitches, nturns))
+        total_height = sum(p * n for p, n in zip(pitches, nturns, strict=True))
         h_spire = (total_height / total_turns) * 1e-3  # mm → m
 
         # ── material ──
@@ -347,7 +348,8 @@ def _parse_geometry_config(gc: dict, part_name: str, debug: bool) -> dict | None
     r = gc.get("r", [])
     if len(r) < 2:
         warnings.warn(
-            f"  {part_name}: geometry_config.r missing or short ({r}) — skipped."
+            f"  {part_name}: geometry_config.r missing or short ({r}) — skipped.",
+            stacklevel=2,
         )
         return None
 
@@ -357,12 +359,13 @@ def _parse_geometry_config(gc: dict, part_name: str, debug: bool) -> dict | None
 
     if not pitches or not nturns:
         warnings.warn(
-            f"  {part_name}: geometry_config.modelaxi missing pitch/turns — skipped."
+            f"  {part_name}: geometry_config.modelaxi missing pitch/turns — skipped.",
+            stacklevel=2,
         )
         return None
 
     total_turns = sum(nturns)
-    total_height = sum(p * n for p, n in zip(pitches, nturns))
+    total_height = sum(p * n for p, n in zip(pitches, nturns, strict=True))
     h_spire = (total_height / total_turns) * 1e-3  # mm → m
 
     if debug:
@@ -522,10 +525,10 @@ def _helix_inputs_from_magnet_dict(
         Teau = Teau_override if Teau_override is not None else DEFAULT_TEAU
 
         if rho is None:
-            warnings.warn(f"{label} ({pname}): ρ not found — provide --rho.")
+            warnings.warn(f"{label} ({pname}): ρ not found — provide --rho.", stacklevel=2)
             continue
         if lam is None:
-            warnings.warn(f"{label} ({pname}): λ not found — provide --lam.")
+            warnings.warn(f"{label} ({pname}): λ not found — provide --lam.", stacklevel=2)
             continue
 
         inputs.append(
@@ -652,8 +655,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-
-    needs_api = not args.dfile and not args.jsonfile
 
     # ── build HelixInput list ─────────────────────────────────────────────
     if args.dfile:

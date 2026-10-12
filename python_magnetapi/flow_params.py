@@ -176,7 +176,7 @@ def _detect_imax_from_files(
                     f"{_df['Date'].iloc[0]} {_df['Time'].iloc[0]}", tformat
                 )
                 _df["t"] = _df.apply(
-                    lambda row: (
+                    lambda row, tformat=tformat, t0=t0: (
                         datetime.datetime.strptime(
                             f"{row.Date} {row.Time}", tformat
                         )

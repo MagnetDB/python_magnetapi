@@ -4,9 +4,8 @@
 
 import os
 import sys
-from typing import List, Optional
 
-from ..exceptions import AuthenticationError, MagnetAPIException
+from ..exceptions import AuthenticationError
 from ..utils import setup_logging
 from .commands import COMMANDS
 from .context import CLIContext

@@ -1,7 +1,5 @@
 """Command registry and imports."""
 
-from typing import Dict, Type
-
 from ..base import BaseCommand
 from .compute import ComputeCommand
 from .create import CreateCommand

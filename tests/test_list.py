@@ -3,6 +3,14 @@ import os
 
 import requests
 
+from python_magnetapi.geometry import create as geometry_create
+from python_magnetapi.magnet import create as magnet_create
+from python_magnetapi.material import create as mat_create
+from python_magnetapi.part import create as part_create
+from python_magnetapi.record import create as record_create
+from python_magnetapi.site import create as site_create
+from python_magnetapi.site import status as site_status
+
 # add  @pytest.fixture to declare context
 
 api_server = os.getenv("MAGNETDB_API_SERVER") or "https://api.magnetdb-dev.local"
@@ -78,14 +86,6 @@ class TestList:
         assert len(_ids) != 0
 
 
-from python_magnetapi.geometry import create as geometry_create
-from python_magnetapi.magnet import create as magnet_create
-from python_magnetapi.material import create as mat_create
-from python_magnetapi.part import create as part_create
-from python_magnetapi.record import create as record_create
-from python_magnetapi.site import create as site_create
-from python_magnetapi.site import status as site_status
-
 ocreate = {
     "material": {"cmd": mat_create, "file": "ma2202802.dat", "object": "testmat3"},
     "part": {"cmd": part_create, "file": "part.dat", "object": "H22121601test"},
@@ -140,7 +140,7 @@ class TestCrud:
         )
         print(f"id={ids[name]}")
 
-        response = utils.del_object(
+        utils.del_object(
             session,
             api_server,
             headers=headers,
@@ -202,19 +202,19 @@ class TestCrud:
 
     def test_delete_site(self):
         print(f'delete {ocreate["site"]["object"]}')
-        assert self.delete("site", ocreate["site"]["object"]) == False
+        assert self.delete("site", ocreate["site"]["object"]) is False
 
     def test_delete_magnet(self):
         print(f'delete {ocreate["magnet"]["object"]}')
-        assert self.delete("magnet", ocreate["magnet"]["object"]) == False
+        assert self.delete("magnet", ocreate["magnet"]["object"]) is False
 
     def test_delete_part(self):
         print(f'delete {ocreate["part"]["object"]}')
-        assert self.delete("part", ocreate["part"]["object"]) == False
+        assert self.delete("part", ocreate["part"]["object"]) is False
 
     def test_delete_material(self):
         print(f'delete {ocreate["material"]["object"]}')
-        assert self.delete("material", ocreate["material"]["object"]) == False
+        assert self.delete("material", ocreate["material"]["object"]) is False
 
     # delete record
     # delete site

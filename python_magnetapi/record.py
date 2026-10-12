@@ -55,7 +55,8 @@ def create(
     )
     if data["site"] not in _ids:
         raise ResourceNotFoundError(
-            f"Site '{data['site']}' not found. Create the site before creating record '{data['name']}'",
+            f"Site '{data['site']}' not found. "
+            f"Create the site before creating record '{data['name']}'",
             object_name=data['site'],
             object_type='site',
             required_by=data['name']

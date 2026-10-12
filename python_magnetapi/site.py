@@ -121,7 +121,8 @@ def create(
 
         else:
             raise RuntimeError(
-                f"site/create: unexpected type for magnet (type={type(magnet)}) - should be str or dict"
+                f"site/create: unexpected type for magnet (type={type(magnet)})"
+                " - should be str or dict"
             )
 
         # call to api/sites/{site_id}/magnets with magnetid = _id
@@ -244,7 +245,8 @@ def status(
 
     if response is None:
         print(
-            f"site:status: id={data['id']}, name={data['name']}, failed to set status {data['status']}"
+            f"site:status: id={data['id']}, name={data['name']}, "
+            f"failed to set status {data['status']}"
         )
         return False
 

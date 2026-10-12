@@ -67,10 +67,7 @@ def create(
         geometries = data["geometry"].copy()
         del data["geometry"]
 
-    status = ""
-    if "status" in data:
-        status = data["status"]
-        del data["status"]
+    data.pop("status", None)
 
     # data: extract only necessary data for creation
     print(f"create:magnet data={data}")
@@ -138,7 +135,8 @@ def create(
             )
         else:
             raise RuntimeError(
-                f"create:magnet  {data['name']} unexpected type for part (type={type(part)}) - should be str or dict"
+                f"create:magnet  {data['name']} unexpected type for part (type={type(part)})"
+                " - should be str or dict"
             )
 
     for site in sites:
@@ -169,7 +167,8 @@ def create(
 
         else:
             raise RuntimeError(
-                f"magnet {data['name']} failed to attach to site {site} - unexpected type ({type(site)}"
+                f"magnet {data['name']} failed to attach to site {site}"
+                f" - unexpected type ({type(site)}"
             )
 
     # add magnet geometry
