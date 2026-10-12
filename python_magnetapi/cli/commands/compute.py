@@ -148,7 +148,8 @@ class ComputeCommand(BaseCommand):
         hoop_stress.compute(
             context.session,
             context.web,
-            headers=context.headers,
+            auth_headers=context.headers,
             mtype=args.mtype,
             oid=obj["id"],
+            debug=context.debug,
         )
