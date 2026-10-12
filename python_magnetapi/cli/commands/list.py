@@ -1,11 +1,10 @@
 """List command handler."""
 
 import argparse
-from typing import Dict, Optional
 
-from ..base import BaseCommand, OBJECT_TYPES
-from ..context import CLIContext
 from ... import utils
+from ..base import OBJECT_TYPES, BaseCommand
+from ..context import CLIContext
 
 
 class ListCommand(BaseCommand):
@@ -45,7 +44,7 @@ class ListCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        filter_dict: Dict[str, str] = {}
+        filter_dict: dict[str, str] = {}
         if args.filters:
             for filter_str in args.filters:
                 if "=" in filter_str:

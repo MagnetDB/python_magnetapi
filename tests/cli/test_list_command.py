@@ -1,7 +1,6 @@
 """Tests for list command."""
 
 import argparse
-import pytest
 from unittest.mock import Mock, patch
 
 from python_magnetapi.cli.commands.list import ListCommand

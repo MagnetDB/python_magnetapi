@@ -3,11 +3,11 @@
 import argparse
 import sys
 from time import sleep
-from typing import Any, Dict, Optional
+from typing import Any
 
+from ... import utils
 from ..base import BaseCommand
 from ..context import CLIContext
-from ... import utils
 
 
 class RunCommand(BaseCommand):
@@ -64,7 +64,7 @@ class RunCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        simu: Optional[Dict[str, Any]] = utils.get_object(
+        simu: dict[str, Any] | None = utils.get_object(
             context.session,
             context.web,
             context.headers,
@@ -77,7 +77,7 @@ class RunCommand(BaseCommand):
                 " - please check simulations list"
             )
 
-        server_ids: Dict[str, int] = utils.get_list(
+        server_ids: dict[str, int] = utils.get_list(
             context.session,
             context.web,
             headers=context.headers,

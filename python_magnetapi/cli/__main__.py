@@ -1,6 +1,7 @@
 """Allow python -m python_magnetapi.cli execution."""
 
-from . import main
 import sys
+
+from . import main
 
 sys.exit(main())

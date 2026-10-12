@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 import requests
 
 # add  @pytest.fixture to declare context
@@ -77,13 +78,13 @@ class TestList:
         assert len(_ids) != 0
 
 
+from python_magnetapi.geometry import create as geometry_create
+from python_magnetapi.magnet import create as magnet_create
 from python_magnetapi.material import create as mat_create
+from python_magnetapi.part import create as part_create
+from python_magnetapi.record import create as record_create
 from python_magnetapi.site import create as site_create
 from python_magnetapi.site import status as site_status
-from python_magnetapi.magnet import create as magnet_create
-from python_magnetapi.part import create as part_create
-from python_magnetapi.geometry import create as geometry_create
-from python_magnetapi.record import create as record_create
 
 ocreate = {
     "material": {"cmd": mat_create, "file": "ma2202802.dat", "object": "testmat3"},
@@ -118,7 +119,7 @@ class TestCrud:
         print(f"cwd={pwd}")
         filename = f"tests/{ocreate[mtype]['file']}"
         print(f"filename={filename}")
-        with open(filename, "r") as f:
+        with open(filename) as f:
             data = json.loads(f.read())
         print(f"{mtype}: name={data['name']}", flush=True)
 
@@ -181,16 +182,16 @@ class TestCrud:
         return isOK
 
     def test_create_material(self):
-        assert not self.create("material") is None
+        assert self.create("material") is not None
 
     def test_create_part(self):
-        assert not self.create("part") is None
+        assert self.create("part") is not None
 
     def test_create_magnet(self):
-        assert not self.create("magnet") is None
+        assert self.create("magnet") is not None
 
     def test_create_site(self):
-        assert not self.create("site") is None
+        assert self.create("site") is not None
 
     def test_up_site(self):
         assert self.up("site") is True

@@ -2,10 +2,10 @@
 
 import argparse
 
-from ..base import BaseCommand, OBJECT_TYPES
-from ..context import CLIContext
 from ... import utils
 from ...exceptions import ResourceNotFoundError
+from ..base import OBJECT_TYPES, BaseCommand
+from ..context import CLIContext
 
 
 class DeleteCommand(BaseCommand):

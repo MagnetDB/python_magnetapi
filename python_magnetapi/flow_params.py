@@ -8,31 +8,25 @@ curve fitting to python_magnetcooling.fitting. The separation of concerns is:
   - WaterFlow object creation: python_magnetcooling.waterflow_factory / fitting.build_waterflow
 """
 
-import tempfile
-import os
-import re
 import datetime
 import json
 import logging
-
+import os
+import re
+import tempfile
 from math import floor
 
 import numpy as np
 import pandas as pd
+from python_magnetcooling.fitting import (
+    build_waterflow,
+    fit_hydraulic_system,
+)
+from python_magnetrun.utils.files import concat_files
+from python_magnetrun.utils.plots import plot_files
 from rich.progress import track
 
 from . import utils
-
-from python_magnetrun.utils.files import concat_files
-from python_magnetrun.utils.plots import plot_files
-from python_magnetrun.magnetdata import MagnetData
-from python_magnetrun.processing.stats import nplateaus
-
-from python_magnetcooling.fitting import (
-    fit_hydraulic_system,
-    build_waterflow,
-)
-from python_magnetcooling.waterflow_factory import from_flow_params
 
 logger = logging.getLogger(__name__)
 

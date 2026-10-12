@@ -21,9 +21,9 @@ Optional flags
     --debug      print raw API responses
 """
 
+import argparse
 import os
 import sys
-import argparse
 
 import requests
 import urllib3

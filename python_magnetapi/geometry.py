@@ -3,10 +3,10 @@ create geometry
 """
 
 import os
-from . import utils
-import json
+
 import requests
 
+from . import utils
 
 valid_geometry_types = {
     "Helix": ["salome", "catia", "cam", "shape"],

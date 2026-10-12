@@ -11,9 +11,9 @@ import requests
 from .exceptions import (
     AuthenticationError,
     AuthorizationError,
+    MagnetAPIException,
     ResourceConflictError,
     ServerError,
-    MagnetAPIException,
 )
 
 logger = logging.getLogger(__name__)

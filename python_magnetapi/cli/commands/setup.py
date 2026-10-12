@@ -3,12 +3,11 @@
 import argparse
 import sys
 from time import sleep
+from typing import Any
 
-from typing import Any, Dict, List
-
+from ... import utils
 from ..base import BaseCommand
 from ..context import CLIContext
-from ... import utils
 
 
 class SetupCommand(BaseCommand):
@@ -132,9 +131,9 @@ class SetupCommand(BaseCommand):
                 f" geometry - supported values are {available_models}"
             )
 
-        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
+        obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
-        currents: List[Dict[str, Any]] = []
+        currents: list[dict[str, Any]] = []
         if args.mtype == "site":
             if len(args.current) != len(obj["site_magnets"]):
                 raise RuntimeError(

@@ -70,25 +70,23 @@ is unsafe).
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 import warnings
-from typing import Sequence
+from collections.abc import Sequence
 
+import magnettools.Bmap as bmap
+import magnettools.magnettools as mt
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 from matplotlib.gridspec import GridSpec
+from python_magnetrun.MagnetRun import MagnetRun
+from python_magnetsetup.ana import msite_setup
+from python_magnetsetup.config import appenv
 from rich.progress import track
 
 from . import utils
-from python_magnetsetup.ana import msite_setup
-from python_magnetsetup.config import appenv
-from python_magnetrun.MagnetRun import MagnetRun
-import magnettools.Bmap as bmap
-import magnettools.magnettools as mt
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -688,7 +686,6 @@ def plot_hoop_stats(
 
     Also prints a formatted stats table to stdout.
     """
-    import matplotlib.cm as cm
     from matplotlib.colors import Normalize
 
     pname = part_name or "part"

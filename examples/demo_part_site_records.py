@@ -23,17 +23,16 @@ Optional flags
     --debug    print raw API responses
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 from datetime import datetime
 
 import requests
 
 from python_magnetapi import utils
 from python_magnetapi.cli.parser import add_server_arguments
-
 
 # ---------------------------------------------------------------------------
 # Date helpers  (shared with demo_part_history.py)
@@ -159,7 +158,7 @@ def print_site_card(site: dict, records: list[dict], magnet_names: list[str]) ->
             rdate = _date_str(rec, "created_at")
             print(f"                        [{rdate}]  {rec.get('name', '?')}")
     else:
-        print(f"       records       : (none)")
+        print("       records       : (none)")
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +195,7 @@ def main():
 
         # ── Banner ────────────────────────────────────────────────────────
         print(f"\n{'='*70}")
-        print(f"  Part history + site details + records")
+        print("  Part history + site details + records")
         print(f"  Part  : {args.part}")
         print(f"  Server: {web}")
         print(f"{'='*70}")
@@ -206,7 +205,7 @@ def main():
         part = utils.get_object(
             session, web, headers=headers, mtype="part", id=part_id
         )
-        print(f"\nPart details")
+        print("\nPart details")
         print(f"  name     : {part.get('name')}")
         print(f"  type     : {part.get('type')}")
         print(f"  status   : {part.get('status')}")

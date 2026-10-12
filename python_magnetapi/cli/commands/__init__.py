@@ -3,17 +3,16 @@
 from typing import Dict, Type
 
 from ..base import BaseCommand
-from .list import ListCommand
-from .view import ViewCommand
+from .compute import ComputeCommand
 from .create import CreateCommand
 from .delete import DeleteCommand
-from .setup import SetupCommand
-from .run import RunCommand
-from .compute import ComputeCommand
+from .list import ListCommand
 from .process import ProcessCommand
+from .run import RunCommand
+from .setup import SetupCommand
+from .view import ViewCommand
 
-
-COMMANDS: Dict[str, Type[BaseCommand]] = {
+COMMANDS: dict[str, type[BaseCommand]] = {
     "list": ListCommand,
     "view": ViewCommand,
     "create": CreateCommand,

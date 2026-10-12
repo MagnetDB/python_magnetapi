@@ -139,28 +139,7 @@ apptainer exec magnetapi.sif python -m python_magnetapi.cli --help
 
 ### MagnetDB client
 
-Ensure the MagnetDB server is accessible. Add the following entries to `/etc/hosts` with the appropriate IP address:
-
-```
-aa.bb.xx.yy magnetdb.local
-aa.bb.xx.yy api.magnetdb.local
-aa.bb.xx.yy lemon.magnetdb.local
-aa.bb.xx.yy manager.lemon.magnetdb.local
-aa.bb.xx.yy auth.lemon.magnetdb.local
-aa.bb.xx.yy pgadmin.magnetdb.local
-aa.bb.xx.yy minio.magnetdb.local
-aa.bb.xx.yy traefik.magnetdb.local
-```
-
-### Add the CA certificate
-
-Retrieve and install the server certificate:
-
-```bash
-echo | openssl s_client -servername magnetdb.local -connect magnetdb.local:443 | cat > magnetdb.crt
-sudo cp magnetdb.crt /usr/local/share/ca-certificates/
-sudo update-ca-certificates
-```
+To setup the python_magnetdb client, see [client.md](https://github.com/MagnetDB/python_magnetdb/blob/fix-site-setup/client.md)
 
 ### API key
 
@@ -373,6 +352,19 @@ def test_list_command():
 ```
 
 Pytest configuration is defined in `pyproject.toml` under `[tool.pytest.ini_options]`.
+
+## Code quality
+
+[pre-commit](https://pre-commit.com/) hooks run [ruff](https://docs.astral.sh/ruff/) (linting),
+[ty](https://docs.astral.sh/ty/) (type checking) and [bandit](https://bandit.readthedocs.io/)
+(security checks). Their settings live in `pyproject.toml`.
+
+```bash
+pip install pre-commit
+pre-commit install            # run the hooks on every commit
+pre-commit run --all-files    # run them on the whole project
+pre-commit run --hook-stage manual ty   # ty is manual until existing errors are fixed
+```
 
 ## Project structure
 

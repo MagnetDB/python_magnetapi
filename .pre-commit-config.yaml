@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+
+  # Local hook instead of astral-sh/ty-pre-commit: that one runs `uv check`,
+  # which fails because the `full` extras (magnettools, ...) are not on PyPI
+  - repo: local
+    hooks:
+      # checks the whole project: manual until the existing diagnostics are fixed
+      #   pre-commit run --hook-stage manual ty
+      - id: ty
+        stages: [manual]
+        name: ty
+        entry: ty check
+        language: python
+        additional_dependencies: ["ty==0.0.85"]
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]

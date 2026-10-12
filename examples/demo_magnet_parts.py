@@ -21,10 +21,10 @@ Optional flags
     --debug      print raw API responses
 """
 
-import os
-import sys
 import argparse
 import enum
+import os
+import sys
 
 import requests
 import urllib3

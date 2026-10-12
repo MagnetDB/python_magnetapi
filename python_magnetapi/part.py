@@ -7,8 +7,7 @@ import os
 
 import requests
 
-from . import utils
-from . import material
+from . import material, utils
 from .exceptions import ResourceConflictError, ResourceNotFoundError, ValidationError
 
 
@@ -426,7 +425,7 @@ def update(
         update_data["geometry_yaml_config"] = geometry_yaml_inline
     elif geometry_file:
         if os.path.isfile(geometry_file):
-            with open(geometry_file, "r") as f:
+            with open(geometry_file) as f:
                 update_data["geometry_yaml_config"] = f.read()
         else:
             print(f"Warning: geometry file {geometry_file} not found")

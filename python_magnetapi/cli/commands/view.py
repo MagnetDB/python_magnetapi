@@ -2,9 +2,9 @@
 
 import argparse
 import json
-from typing import Any, Dict
+from typing import Any
 
-from ..base import BaseCommand, OBJECT_TYPES
+from ..base import OBJECT_TYPES, BaseCommand
 from ..context import CLIContext
 
 
@@ -44,7 +44,7 @@ class ViewCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
+        obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
         print(f"{args.name}:\n{json.dumps(obj, indent=4)}")
 
         return 0

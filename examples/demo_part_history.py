@@ -21,17 +21,16 @@ Optional flags
     --debug   print raw API responses
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 from datetime import datetime
 
 import requests
 
 from python_magnetapi import utils
 from python_magnetapi.cli.parser import add_server_arguments
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -184,7 +183,7 @@ def main():
         # 1. Resolve part
         part_id = get_part_id(session, web, headers, args.part, args.debug)
         part = utils.get_object(session, web, headers=headers, mtype="part", id=part_id)
-        print(f"Part details")
+        print("Part details")
         print(f"  name   : {part.get('name')}")
         print(f"  type   : {part.get('type')}")
         print(f"  status : {part.get('status')}")

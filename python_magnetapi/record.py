@@ -5,8 +5,8 @@ create record
 import requests
 
 from . import utils
-from .exceptions import ResourceConflictError, ResourceNotFoundError
 from .attachment import create as attach_create
+from .exceptions import ResourceConflictError, ResourceNotFoundError
 
 
 def create(
@@ -60,7 +60,7 @@ def create(
             object_type='site',
             required_by=data['name']
         )
-    
+
     _id = _ids[data["site"]]
     data["site_id"] = _id
     del data["site"]

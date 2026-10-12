@@ -48,18 +48,24 @@ Why C++ objects are NOT passed to workers
 from __future__ import annotations
 
 import os
-import warnings
 import tempfile
+import warnings
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-from typing import Sequence
 
+import magnettools.magnettools as mt
 import numpy as np
 import pandas as pd
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from python_magnetrun.MagnetRun import MagnetRun
+from python_magnetsetup.ana import msite_setup
+from python_magnetsetup.config import appenv
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+
+from . import utils
 
 # Re-export stats and plot helpers unchanged — no need to duplicate them
-from .hoop_stress import (          # noqa: F401  (re-exported for callers)
+from .hoop_stress import (  # noqa: F401  (re-exported for callers)
     HoopBasis,
     _ObjectCache,
     hoop_columns,
@@ -67,12 +73,6 @@ from .hoop_stress import (          # noqa: F401  (re-exported for callers)
     plot_hoop_history,
     plot_hoop_stats,
 )
-from . import utils
-from python_magnetsetup.ana import msite_setup
-from python_magnetsetup.config import appenv
-from python_magnetrun.MagnetRun import MagnetRun
-import magnettools.magnettools as mt
-
 
 # ---------------------------------------------------------------------------
 # Worker task descriptor  (must be picklable → plain dataclass, no C++ refs)

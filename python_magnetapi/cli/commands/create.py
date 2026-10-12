@@ -2,18 +2,19 @@
 
 import argparse
 import json
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 
-from ..base import BaseCommand, OBJECT_TYPES
-from ..context import CLIContext
-from ...material import create as mat_create
-from ...site import create as site_create
 from ...magnet import create as magnet_create
+from ...material import create as mat_create
 from ...part import create as part_create
 from ...record import create as record_create
+from ...site import create as site_create
+from ..base import OBJECT_TYPES, BaseCommand
+from ..context import CLIContext
 
 # Map resource types to their creation functions
-_CREATORS: Dict[str, Callable[..., Any]] = {
+_CREATORS: dict[str, Callable[..., Any]] = {
     "material": mat_create,
     "site": site_create,
     "magnet": magnet_create,
@@ -65,13 +66,13 @@ class CreateCommand(BaseCommand):
         Returns:
             Exit code (0 for success)
         """
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         if args.data:
             print(f"create: data={json.dumps(args.data, indent=4, default=str)}")
             data = args.data
         if args.file:
             print(f"create: file={args.file}")
-            with open(args.file, "r") as f:
+            with open(args.file) as f:
                 data = json.loads(f.read())
                 print(f"data: {data}")
 

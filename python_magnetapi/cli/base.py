@@ -1,15 +1,14 @@
 """Base command handler class."""
 
-from abc import ABC, abstractmethod
 import argparse
-from typing import Optional, List, Dict
+from abc import ABC, abstractmethod
 
-from .context import CLIContext
 from .. import utils
 from ..exceptions import ResourceNotFoundError, ValidationError
+from .context import CLIContext
 
 # All resource types supported by MagnetDB
-OBJECT_TYPES: List[str] = [
+OBJECT_TYPES: list[str] = [
     "material",
     "part",
     "magnet",
@@ -55,7 +54,7 @@ class BaseCommand(ABC):
         """
         pass
 
-    def get_object_list(self, context: CLIContext, mtype: str) -> Dict[str, int]:
+    def get_object_list(self, context: CLIContext, mtype: str) -> dict[str, int]:
         """Get list of objects by type.
 
         Args:
@@ -108,8 +107,8 @@ class BaseCommand(ABC):
     def validate_resource_type(
         self,
         mtype: str,
-        allowed_types: List[str],
-        command_name: Optional[str] = None,
+        allowed_types: list[str],
+        command_name: str | None = None,
     ) -> None:
         """Validate that resource type is allowed for this command.
 

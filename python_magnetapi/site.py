@@ -2,11 +2,12 @@
 create site
 """
 
+from datetime import datetime
+
 import requests
 
 from . import utils
 from .exceptions import ResourceConflictError
-from datetime import datetime
 
 # from . import magnet
 # from . import record

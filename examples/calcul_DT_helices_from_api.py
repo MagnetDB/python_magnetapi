@@ -73,7 +73,6 @@ import os
 import sys
 import warnings
 from dataclasses import dataclass
-from typing import Optional
 
 import pandas as pd
 import requests
@@ -132,8 +131,8 @@ class HelixInput:
     lam: float  # Thermal conductivity [W/(m·°C)]
     Teau: float  # Cooling water temperature [°C]
     h_spire: float  # Coil pitch [m]
-    rapport: Optional[float] = None  # conductivity / IACS → T_moy_ro derived
-    T_moy_ro: Optional[float] = None  # mean temp from ρ → rapport derived
+    rapport: float | None = None  # conductivity / IACS → T_moy_ro derived
+    T_moy_ro: float | None = None  # mean temp from ρ → rapport derived
 
 
 @dataclass
@@ -234,8 +233,8 @@ def results_to_dataframe(results: list[HelixResult]) -> pd.DataFrame:
 def _load_from_dfile(
     dfile: str,
     Current: float,
-    h_conv_override: Optional[float],
-    Teau_override: Optional[float],
+    h_conv_override: float | None,
+    Teau_override: float | None,
     debug: bool,
 ) -> list[HelixInput]:
     """
@@ -327,7 +326,7 @@ def _load_from_dfile(
 # ---------------------------------------------------------------------------
 # Backend B: live MagnetDB API  /  Backend C: local JSON file
 # ---------------------------------------------------------------------------
-def _parse_geometry_config(gc: dict, part_name: str, debug: bool) -> Optional[dict]:
+def _parse_geometry_config(gc: dict, part_name: str, debug: bool) -> dict | None:
     """
     Extract Dint [m], Dext [m], and h_spire [m] from a ``geometry_config`` dict.
 
@@ -419,10 +418,10 @@ def _build_helix_inputs_from_api(
     auth_headers: dict,
     magnet_name: str,
     Current: float,
-    h_conv_override: Optional[float],
-    Teau_override: Optional[float],
-    rho_override: Optional[float],
-    lam_override: Optional[float],
+    h_conv_override: float | None,
+    Teau_override: float | None,
+    rho_override: float | None,
+    lam_override: float | None,
     debug: bool,
 ) -> list[HelixInput]:
     """
@@ -473,10 +472,10 @@ def _build_helix_inputs_from_api(
 def _helix_inputs_from_magnet_dict(
     magnet: dict,
     Current: float,
-    h_conv_override: Optional[float],
-    Teau_override: Optional[float],
-    rho_override: Optional[float],
-    lam_override: Optional[float],
+    h_conv_override: float | None,
+    Teau_override: float | None,
+    rho_override: float | None,
+    lam_override: float | None,
     debug: bool,
 ) -> list[HelixInput]:
     """
@@ -550,10 +549,10 @@ def _helix_inputs_from_magnet_dict(
 def _build_helix_inputs_from_json(
     jsonfile: str,
     Current: float,
-    h_conv_override: Optional[float],
-    Teau_override: Optional[float],
-    rho_override: Optional[float],
-    lam_override: Optional[float],
+    h_conv_override: float | None,
+    Teau_override: float | None,
+    rho_override: float | None,
+    lam_override: float | None,
     debug: bool,
 ) -> list[HelixInput]:
     """

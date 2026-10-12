@@ -2,7 +2,6 @@
 
 import argparse
 import os
-from typing import Dict, Type
 
 from .base import BaseCommand
 
@@ -62,7 +61,7 @@ def add_logging_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def create_parser(commands: Dict[str, Type[BaseCommand]]) -> argparse.ArgumentParser:
+def create_parser(commands: dict[str, type[BaseCommand]]) -> argparse.ArgumentParser:
     """Create and configure the argument parser.
 
     Args:

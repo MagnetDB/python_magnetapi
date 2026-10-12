@@ -1,7 +1,7 @@
 """Compute command handler."""
 
 import argparse
-from typing import Any, Dict
+from typing import Any
 
 from ..base import BaseCommand
 from ..context import CLIContext
@@ -86,7 +86,7 @@ class ComputeCommand(BaseCommand):
         """
         self.validate_resource_type(args.mtype, ["magnet", "site", "record"])
 
-        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
+        obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import inductances
 
@@ -110,7 +110,7 @@ class ComputeCommand(BaseCommand):
         """
         self.validate_resource_type(args.mtype, ["magnet"])
 
-        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
+        obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import flow_params
 
@@ -133,7 +133,7 @@ class ComputeCommand(BaseCommand):
         """
         self.validate_resource_type(args.mtype, ["part"])
 
-        obj: Dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
+        obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
         from ... import hoop_stress
 

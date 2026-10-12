@@ -3,27 +3,16 @@ Extract flow params from records using a fit
 """
 
 
-import tempfile
-import sys
 import os
-import re
+import tempfile
 
-import numpy as np
-from scipy import optimize
-
-import json
-import pandas as pd
-from rich.progress import track
-from . import utils
-
-from python_magnetsetup.ana import msite_setup, magnet_setup
-from python_magnetsetup.config import appenv
+import magnettools.magnettools as mt
 
 # from txt2csv import load_files
-from python_magnetrun.MagnetRun import MagnetRun
+from python_magnetsetup.ana import magnet_setup, msite_setup
+from python_magnetsetup.config import appenv
 
-import magnettools.Bmap as bmap
-import magnettools.magnettools as mt
+from . import utils
 
 
 def compute(

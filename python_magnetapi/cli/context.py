@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import urllib3
 from dataclasses import dataclass, field
-from typing import Optional
+
 import requests
+import urllib3
 
 
 @dataclass
@@ -28,7 +28,7 @@ class CLIContext:
     debug: bool = False
     https: bool = False
     no_verify: bool = False
-    session: Optional[requests.Session] = field(default=None, repr=False)
+    session: requests.Session | None = field(default=None, repr=False)
 
     @property
     def headers(self) -> dict:
@@ -52,8 +52,8 @@ class CLIContext:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[BaseException],
+        exc_type: type | None,
+        exc_val: BaseException | None,
         exc_tb: object,
     ) -> None:
         """Context manager exit - close session."""

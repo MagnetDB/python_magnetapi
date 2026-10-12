@@ -6,14 +6,14 @@ import os
 import sys
 from typing import List, Optional
 
-from .parser import create_parser
-from .context import CLIContext
-from .commands import COMMANDS
-from ..exceptions import MagnetAPIException, AuthenticationError
+from ..exceptions import AuthenticationError, MagnetAPIException
 from ..utils import setup_logging
+from .commands import COMMANDS
+from .context import CLIContext
+from .parser import create_parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point.
 
     Args:
