@@ -53,6 +53,12 @@ class ComputeCommand(BaseCommand):
             type=int,
             default=20,
         )
+        parser.add_argument(
+            "--csv",
+            help="save the inductance matrix to this CSV file (with --inductances)",
+            type=str,
+            default=None,
+        )
 
     def execute(self, args: argparse.Namespace, context: CLIContext) -> int:
         """Execute compute command.
@@ -81,10 +87,10 @@ class ComputeCommand(BaseCommand):
         """Compute self and mutual inductances.
 
         Args:
-            args: Parsed arguments (requires mtype, name)
+            args: Parsed arguments (requires mtype, name; optional csv)
             context: CLI context
         """
-        self.validate_resource_type(args.mtype, ["magnet", "site", "record"])
+        self.validate_resource_type(args.mtype, ["magnet", "site"])
 
         obj: dict[str, Any] = self.get_object_by_name(context, args.mtype, args.name)
 
@@ -97,6 +103,8 @@ class ComputeCommand(BaseCommand):
             context.headers,
             oid=obj["id"],
             mtype=args.mtype,
+            debug=context.debug,
+            csvfile=args.csv,
         )
 
     def _compute_flow_params(

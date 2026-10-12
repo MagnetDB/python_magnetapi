@@ -237,6 +237,11 @@ python -m python_magnetapi.cli --https compute --mtype magnet --name M19061901 -
 
 # Compute hoop stress for a part
 python -m python_magnetapi.cli --https compute --mtype part --name H15101601 --hoop_stress
+
+# Compute self and mutual inductances for a magnet or a site
+# (needs python-magnetapi[full], with magnettools >= 1.2.2)
+python -m python_magnetapi.cli --https compute --mtype site --name M10_M19020601 --inductances \
+   --csv inductances.csv
 ```
 
 #### Setting up and running simulations

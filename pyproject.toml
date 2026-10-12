@@ -47,7 +47,7 @@ doc = [
 full = [
     "python-magnetsetup",
     "python-magnetcooling",
-    "magnettools"
+    "magnettools>=1.2.2"
 ]
 
 [project.scripts]

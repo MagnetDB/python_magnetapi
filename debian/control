@@ -13,7 +13,7 @@ Build-Depends: debhelper-compat (= 13),
  python3-rich,
  python3-magnetsetup,
  python3-magnetcooling,
- python3-magnettools
+ python3-magnettools (>= 1.2.2)
 Standards-Version: 4.7.0
 Homepage: https://github.com/MagnetDB/python_magnetapi
 Vcs-Browser: https://github.com/MagnetDB/python_magnetapi
@@ -32,7 +32,7 @@ Depends: ${python3:Depends}, ${misc:Depends},
  python3-rich,
  python3-magnetsetup,
  python3-magnetcooling,
- python3-magnettools
+ python3-magnettools (>= 1.2.2)
 Suggests: python-magnetapi-doc
 Description: Python library and CLI for interacting with MagnetDB
  Python MagnetAPI provides utilities to interact with MagnetDB, a database
