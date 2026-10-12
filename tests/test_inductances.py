@@ -117,12 +117,16 @@ def test_missing_object(deps, api):
     deps.magnet_setup.assert_not_called()
 
 
-def _fake_modules(version):
-    """Stand-ins for the optional modules, to put in sys.modules."""
+def _fake_modules(version, module="inductances"):
+    """Stand-ins for the optional modules, to put in sys.modules.
+
+    module: name of the magnettools module providing compute_inductance_matrix
+    ("Mutual" up to 1.2.2, "inductances" afterwards).
+    """
     ns = types.SimpleNamespace
     return {
         "magnettools": ns(__version__=version),
-        "magnettools.Mutual": ns(compute_inductance_matrix=Mock()),
+        f"magnettools.{module}": ns(compute_inductance_matrix=Mock(name=module)),
         "python_magnetsetup": ns(),
         "python_magnetsetup.ana": ns(magnet_setup=Mock(), msite_setup=Mock()),
         "python_magnetsetup.config": ns(appenv=Mock()),
@@ -130,12 +134,17 @@ def _fake_modules(version):
 
 
 def test_requires_recent_magnettools():
-    with patch.dict(sys.modules, _fake_modules("1.2.1")):
+    with patch.dict(sys.modules, _fake_modules("1.2.1", "Mutual")):
         with pytest.raises(RuntimeError, match="magnettools>=1.2.2"):
             inductances._import_magnettools()
 
-    with patch.dict(sys.modules, _fake_modules("1.2.2")):
-        assert len(inductances._import_magnettools()) == 4
+
+@pytest.mark.parametrize(("version", "module"), [("1.2.3", "inductances"), ("1.2.2", "Mutual")])
+def test_compute_inductance_matrix_module(version, module):
+    modules = _fake_modules(version, module)
+    with patch.dict(sys.modules, modules):
+        compute_inductance_matrix, *_ = inductances._import_magnettools()
+    assert compute_inductance_matrix is modules[f"magnettools.{module}"].compute_inductance_matrix
 
 
 def test_missing_magnettools():

@@ -34,7 +34,6 @@ def _import_magnettools():
     """
     try:
         import magnettools
-        from magnettools.Mutual import compute_inductance_matrix
         from python_magnetsetup.ana import magnet_setup, msite_setup
         from python_magnetsetup.config import appenv
     except ImportError as e:
@@ -49,6 +48,13 @@ def _import_magnettools():
             f"magnettools>={'.'.join(map(str, MIN_MAGNETTOOLS))} is required, "
             f"found {magnettools.__version__}"
         )
+
+    try:
+        from magnettools.inductances import compute_inductance_matrix
+    except ModuleNotFoundError:
+        # magnettools 1.2.2: the module was renamed afterwards (Mutual clashed
+        # with the Mutual function of the bindings)
+        from magnettools.Mutual import compute_inductance_matrix
     return compute_inductance_matrix, magnet_setup, msite_setup, appenv
 
 
@@ -148,7 +154,7 @@ def compute(
     """Compute self and mutual inductances for a magnet or a site.
 
     Helix tubes, Bitter magnets and supra magnets are all taken into account
-    (see magnettools.Mutual.compute_inductance_matrix).
+    (see magnettools.inductances.compute_inductance_matrix).
 
     Args:
         session: requests session
